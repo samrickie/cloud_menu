@@ -1,0 +1,46 @@
+import type {FastifyInstance} from 'fastify';
+import {z} from 'zod';
+import {randomUUID} from 'node:crypto';
+import {mkdir,writeFile,readFile} from 'node:fs/promises';
+import path from 'node:path';
+import sharp from 'sharp';
+import {parse} from 'csv-parse/sync';
+import {idParams,type Context} from './context.ts';
+import {menuData} from './menu.ts';
+import {Problem} from './security.ts';
+import type {Store,Row} from './store.ts';
+const text=z.string().trim().min(1).max(120),money=z.number().int().min(0).max(1000000000);
+const itemSchema=z.object({category_id:z.uuid(),name_en:text,name_sw:text.optional(),description_en:z.string().max(1000).optional(),description_sw:z.string().max(1000).optional(),price_tzs:money,station:z.enum(['KITCHEN','BAR']),is_available:z.boolean().default(true),is_active:z.boolean().default(true),image_key:z.string().max(100).nullable().optional(),modifier_group_ids:z.array(z.uuid()).max(20).default([])});
+const groupSchema=z.object({name_en:text,name_sw:text.optional(),selection:z.enum(['SINGLE','MULTI']),min_select:z.number().int().min(0).max(20),max_select:z.number().int().min(1).max(20),modifiers:z.array(z.object({name_en:text,name_sw:text.optional(),price_delta_tzs:z.number().int().min(-1000000000).max(1000000000),is_available:z.boolean().default(true)})).max(30)}).refine(g=>g.max_select>=g.min_select&&(g.selection==='MULTI'||g.max_select===1)&&g.modifiers.length>=g.min_select);
+async function bump(tx:Store,venue:string,staff:string,entity:string){for(const m of await tx.rows('menus',{venue_id:venue,is_active:true}))await tx.patch('menus',{id:m.id},{version:m.version+1});await tx.add('audit_log',{venue_id:venue,actor_type:'STAFF',actor_id:staff,action:'MENU_EDIT',entity_type:'menu',entity_id:entity});}
+async function saveItem(tx:Store,venue:string,staff:string,payload:unknown,id?:string){
+ const input=itemSchema.parse(payload);const [category]=await tx.rows('categories',{id:input.category_id});const [menu]=category?await tx.rows('menus',{id:category.menu_id,venue_id:venue}):[];
+ if(!category||!menu)throw new Problem(403,'VENUE_FORBIDDEN');if(input.image_key&&!input.image_key.startsWith(venue+'-'))throw new Problem(403,'VENUE_FORBIDDEN');
+ for(const g of input.modifier_group_ids)if(!(await tx.rows('modifier_groups',{id:g,venue_id:venue})).length)throw new Problem(403,'VENUE_FORBIDDEN');
+ const {modifier_group_ids,...data}=input;const itemId=id??randomUUID();
+ if(id){if(!(await tx.rows('items',{id,venue_id:venue})).length)throw new Problem(404,'ITEM_NOT_FOUND');await tx.patch('items',{id,venue_id:venue},data);await tx.remove('item_modifier_groups',{item_id:id});}
+ else await tx.add('items',{id:itemId,venue_id:venue,sort_order:0,...data});
+ for(const group_id of new Set(modifier_group_ids))await tx.add('item_modifier_groups',{item_id:itemId,group_id});await bump(tx,venue,staff,itemId);return (await tx.rows('items',{id:itemId}))[0];
+}
+export async function registerAdminMenu(app:FastifyInstance,ctx:Context,uploadDir:string){
+ const manager=(r:Parameters<Context['staff']>[0])=>ctx.staff(r,['MANAGER','OWNER']);await mkdir(uploadDir,{recursive:true});
+ app.get('/v1/admin/menu',async request=>{const s=await manager(request);const groups=[];for(const g of await ctx.store.rows('modifier_groups',{venue_id:s.venue_id}))groups.push({...g,modifiers:await ctx.store.rows('modifiers',{group_id:g.id})});return {...await menuData(ctx,s.venue_id),modifier_groups:groups};});
+ app.post('/v1/admin/categories',async(request,reply)=>{const s=await manager(request),input=z.object({name_en:text,name_sw:text.optional(),sort_order:z.number().int().min(0).default(0)}).parse(request.body);return ctx.store.tx(`venue:${s.venue_id}`,async tx=>{let [m]=await tx.rows('menus',{venue_id:s.venue_id,is_active:true});if(!m)m=await tx.add('menus',{id:randomUUID(),venue_id:s.venue_id,name:'Menu',is_active:true,version:1});const category=await tx.add('categories',{id:randomUUID(),menu_id:m.id,is_active:true,...input});await bump(tx,s.venue_id,s.id,category.id);reply.code(201);return {category};});});
+ app.patch('/v1/admin/categories/:id',async request=>{const s=await manager(request),id=idParams(request.params),input=z.object({name_en:text.optional(),name_sw:text.optional(),sort_order:z.number().int().min(0).optional(),is_active:z.boolean().optional()}).parse(request.body);return ctx.store.tx(`venue:${s.venue_id}`,async tx=>{const [c]=await tx.rows('categories',{id});if(!c||!(await tx.rows('menus',{id:c.menu_id,venue_id:s.venue_id})).length)throw new Problem(404,'CATEGORY_NOT_FOUND');await tx.patch('categories',{id},input);await bump(tx,s.venue_id,s.id,id);return {category:(await tx.rows('categories',{id}))[0]};});});
+ app.post('/v1/admin/modifier-groups',async(request,reply)=>{const s=await manager(request),input=groupSchema.parse(request.body);return ctx.store.tx(`venue:${s.venue_id}`,async tx=>{const {modifiers,...data}=input;const group=await tx.add('modifier_groups',{id:randomUUID(),venue_id:s.venue_id,...data});for(const m of modifiers)await tx.add('modifiers',{id:randomUUID(),group_id:group.id,sort_order:0,...m});await bump(tx,s.venue_id,s.id,group.id);reply.code(201);return {group};});});
+ app.patch('/v1/admin/modifier-groups/:id',async request=>{const s=await manager(request),id=idParams(request.params);const input=z.object({name_en:text.optional(),name_sw:text.optional(),min_select:z.number().int().min(0).optional(),max_select:z.number().int().min(1).max(20).optional()}).parse(request.body);return ctx.store.tx(`venue:${s.venue_id}`,async tx=>{const [g]=await tx.rows('modifier_groups',{id,venue_id:s.venue_id});if(!g)throw new Problem(404,'GROUP_NOT_FOUND');const next:Row={...g,...input};if(next.min_select>next.max_select||(next.selection==='SINGLE'&&next.max_select!==1))throw new Problem(422,'MODIFIER_RULE_VIOLATION');await tx.patch('modifier_groups',{id},input);await bump(tx,s.venue_id,s.id,id);return {group:next};});});
+ app.patch('/v1/admin/modifiers/:id',async request=>{const s=await manager(request),id=idParams(request.params),input=z.object({name_en:text.optional(),name_sw:text.optional(),price_delta_tzs:z.number().int().min(-1000000000).max(1000000000).optional(),is_available:z.boolean().optional()}).parse(request.body);return ctx.store.tx(`venue:${s.venue_id}`,async tx=>{const [m]=await tx.rows('modifiers',{id});if(!m||!(await tx.rows('modifier_groups',{id:m.group_id,venue_id:s.venue_id})).length)throw new Problem(404,'MODIFIER_NOT_FOUND');await tx.patch('modifiers',{id},input);await bump(tx,s.venue_id,s.id,id);return {modifier:{...m,...input}};});});
+ app.post('/v1/admin/items',async(request,reply)=>{const s=await manager(request);const item=await ctx.store.tx(`venue:${s.venue_id}`,tx=>saveItem(tx,s.venue_id,s.id,request.body));reply.code(201);return {item};});
+ app.put('/v1/admin/items/:id',async request=>{const s=await manager(request);return {item:await ctx.store.tx(`venue:${s.venue_id}`,tx=>saveItem(tx,s.venue_id,s.id,request.body,idParams(request.params)))};});
+ app.delete('/v1/admin/items/:id',async request=>{const s=await manager(request),id=idParams(request.params);return ctx.store.tx(`venue:${s.venue_id}`,async tx=>{if(!(await tx.rows('items',{id,venue_id:s.venue_id})).length)throw new Problem(404,'ITEM_NOT_FOUND');await tx.patch('items',{id,venue_id:s.venue_id},{is_active:false});await bump(tx,s.venue_id,s.id,id);return {deleted:true};});});
+ app.post('/v1/admin/items/import',async request=>{
+  const s=await manager(request),{csv}=z.object({csv:z.string().max(900000)}).parse(request.body);let rows:Row[];try{rows=parse(csv,{columns:true,skip_empty_lines:true,bom:true});}catch{throw new Problem(422,'CSV_INVALID');}if(rows.length>1000)throw new Problem(422,'CSV_TOO_LARGE');let created=0;const errors=[];
+  for(const [index,row]of rows.entries()){try{if(!/^\d+$/.test(row.price_tzs??''))throw new Problem(422,'VALIDATION_ERROR');await ctx.store.tx(`venue:${s.venue_id}`,tx=>saveItem(tx,s.venue_id,s.id,{...row,price_tzs:Number(row.price_tzs)}));created++;}catch(e){errors.push({row:index+2,code:e instanceof Problem?e.code:'VALIDATION_ERROR'});}}return {created,errors};
+ });
+ app.addContentTypeParser(['image/jpeg','image/png','image/webp'],{parseAs:'buffer'},(_req,body,done)=>done(null,body));
+ app.post('/v1/admin/images',{bodyLimit:10000000},async(request,reply)=>{
+  const s=await manager(request);if(!Buffer.isBuffer(request.body))throw new Problem(422,'IMAGE_INVALID');const key=`${s.venue_id}-${randomUUID()}`;const variants=[];
+  try{for(const width of [320,640,960]){const data=await sharp(request.body,{limitInputPixels:16000000,animated:false}).rotate().resize({width,withoutEnlargement:true}).webp({quality:78}).toBuffer();await writeFile(path.join(uploadDir,`${key}-${width}.webp`),data);variants.push({width,url:`/media/${key}-${width}.webp`});}}catch{throw new Problem(422,'IMAGE_INVALID');}reply.code(201);return {image_key:key,variants};
+ });
+ app.get('/media/:file',async(request,reply)=>{const {file}=z.object({file:z.string().regex(/^[a-f0-9-]{73}-(320|640|960)\.webp$/)}).parse(request.params);try{const image=await readFile(path.join(uploadDir,file));return reply.type('image/webp').header('Cache-Control','public,max-age=31536000,immutable').send(image);}catch{throw new Problem(404,'IMAGE_NOT_FOUND');}});
+}
