@@ -7,7 +7,9 @@ import {context} from './context.ts';
 import {registerMenu} from './menu.ts';
 import {registerOrders} from './orders.ts';
 import {registerStaffAuth} from './staff-auth.ts';
-export interface AppOptions {store:Store;tokenSecret:string;qrSecret:string;logger?:boolean;rateLimit?:(key:string,max:number,seconds:number)=>Promise<boolean>;publish?:(venue:string,seq:number)=>Promise<void>}
+import {registerAdminMenu} from './admin-menu.ts';
+import path from 'node:path';
+export interface AppOptions {store:Store;tokenSecret:string;qrSecret:string;logger?:boolean;uploadDir?:string;rateLimit?:(key:string,max:number,seconds:number)=>Promise<boolean>;publish?:(venue:string,seq:number)=>Promise<void>}
 export async function buildApp(options:AppOptions){
  const {store}=options;const tokens=auth(options.tokenSecret);
  const app=Fastify({logger:options.logger??true,bodyLimit:1048576,disableRequestLogging:true});
@@ -61,5 +63,6 @@ export async function buildApp(options:AppOptions){
  registerMenu(app,context(store,options.tokenSecret));
  registerOrders(app,context(store,options.tokenSecret),limit,options.publish);
  registerStaffAuth(app,context(store,options.tokenSecret),limit);
+ await registerAdminMenu(app,context(store,options.tokenSecret),options.uploadDir??path.resolve('uploads'));
  return app;
 }
