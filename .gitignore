@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.source-text/
+.local/
+.artifacts/
+coverage/
+test-results/
+playwright-report/
+.lighthouseci/
+*.log
+uploads/
