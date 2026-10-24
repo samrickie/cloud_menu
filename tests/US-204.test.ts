@@ -1,0 +1,18 @@
+import {beforeEach,afterEach,describe,it,expect} from 'vitest';
+import {fixture,secrets} from './helpers.ts';
+import {randomUUID} from 'node:crypto';
+import {auth} from '../apps/api/src/security.ts';
+let f:Awaited<ReturnType<typeof fixture>>,entry:any,item:any,body:any,key:string;
+beforeEach(async()=>{f=await fixture();entry=(await f.init()).json();const m=await f.store.add('menus',{id:randomUUID(),venue_id:f.venue.id,is_active:true,version:1});const c=await f.store.add('categories',{id:randomUUID(),menu_id:m.id,is_active:true,name_en:'Snacks',sort_order:0});item=await f.store.add('items',{id:randomUUID(),venue_id:f.venue.id,category_id:c.id,name_en:'Chips Mayai [DEMO]',price_tzs:6000,is_active:true,is_available:true,station:'KITCHEN',sort_order:0});body={client_order_id:randomUUID(),items:[{item_id:item.id,quantity:2,modifiers:[],note:'No onions'}]};key=randomUUID();});
+afterEach(async()=>f.app.close());
+const send=(payload=body,k=key)=>f.app.inject({method:'POST',url:`/v1/sessions/${entry.session.id}/orders`,headers:{authorization:`Bearer ${entry.session_token}`,'idempotency-key':k},payload});
+const quote=()=>f.app.inject({method:'POST',url:`/v1/sessions/${entry.session.id}/order-quote`,headers:{authorization:`Bearer ${entry.session_token}`},payload:body});
+describe('US-204 guest order submission',()=>{
+ it('Successful submission creates NEW order snapshots, event and API-visible ticket',async()=>{const r=await send();expect(r.statusCode).toBe(201);expect(r.json().order).toMatchObject({status:'NEW',subtotal_tzs:12000});expect(r.json().order.items[0].note).toBe('No onions');expect(await f.store.rows('realtime_events',{})).toHaveLength(1);
+  const token=await auth(secrets.token).sign({kind:'staff',venue_id:f.venue.id,role:'KITCHEN',staff_id:randomUUID()},3600);const tickets=await f.app.inject({url:'/v1/staff/orders',headers:{authorization:`Bearer ${token}`}});expect(tickets.statusCode).toBe(200);expect(tickets.json().orders[0].id).toBe(r.json().order.id);
+ });
+ it('Duplicate tap or retry is idempotent even with a different header key',async()=>{const results=await Promise.all([send(),send(),send(body,randomUUID())]);expect(results.map(r=>r.statusCode).sort()).toEqual([200,200,201]);expect(new Set(results.map(r=>r.json().order.id)).size).toBe(1);expect(await f.store.rows('orders',{})).toHaveLength(1);});
+ it('Price changed since page load: new quote shown before confirmation and stale quote creates no order',async()=>{const q=(await quote()).json();expect(q.subtotal_tzs).toBe(12000);await f.store.patch('items',{id:item.id},{price_tzs:7000});const stale=await send({...body,quote_token:q.quote_token});expect(stale.statusCode).toBe(409);expect(stale.json().code).toBe('PRICE_CHANGED');expect(await f.store.rows('orders',{})).toHaveLength(0);const fresh=(await quote()).json();expect(fresh.subtotal_tzs).toBe(14000);expect((await send({...body,quote_token:fresh.quote_token},randomUUID())).json().order.subtotal_tzs).toBe(14000);});
+ it('Server ignores client prices; changed idempotent bodies fail; sold-out fails atomically',async()=>{expect((await send({...body,items:[{...body.items[0],price_tzs:1}]})).json().order.subtotal_tzs).toBe(12000);const mismatch=await send({...body,items:[{...body.items[0],quantity:3}]});expect(mismatch.statusCode).toBe(422);await f.store.patch('items',{id:item.id},{is_available:false});const r=await send({...body,client_order_id:randomUUID()},randomUUID());expect(r.json().code).toBe('ITEM_UNAVAILABLE');expect(await f.store.rows('orders',{})).toHaveLength(1);});
+ it.todo('KDS ticket visible within 2 seconds p95 on staging (roadmap assigns full KDS to Sprint 2)');
+});
