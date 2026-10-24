@@ -5,7 +5,8 @@ import { auth,checkQR,hash,Problem } from './security.ts';
 import type { Store } from './store.ts';
 import {context} from './context.ts';
 import {registerMenu} from './menu.ts';
-export interface AppOptions {store:Store;tokenSecret:string;qrSecret:string;logger?:boolean;rateLimit?:(key:string,max:number,seconds:number)=>Promise<boolean>}
+import {registerOrders} from './orders.ts';
+export interface AppOptions {store:Store;tokenSecret:string;qrSecret:string;logger?:boolean;rateLimit?:(key:string,max:number,seconds:number)=>Promise<boolean>;publish?:(venue:string,seq:number)=>Promise<void>}
 export async function buildApp(options:AppOptions){
  const {store}=options;const tokens=auth(options.tokenSecret);
  const app=Fastify({logger:options.logger??true,bodyLimit:1048576,disableRequestLogging:true});
@@ -57,5 +58,6 @@ export async function buildApp(options:AppOptions){
   await store.patch('session_participants',{id:token.participant_id,session_id:id},{display_name});return {participant:{id:token.participant_id,display_name}};
  });
  registerMenu(app,context(store,options.tokenSecret));
+ registerOrders(app,context(store,options.tokenSecret),limit,options.publish);
  return app;
 }

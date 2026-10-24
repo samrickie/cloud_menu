@@ -2,10 +2,11 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { Problem } from './security.ts';
 import type { Context } from './context.ts';
+import type {Row} from './store.ts';
 export async function menuData(ctx:Context,venue_id:string){
- const menus=await ctx.store.rows('menus',{venue_id,is_active:true});const categories=[];
+ const menus=await ctx.store.rows('menus',{venue_id,is_active:true});const categories:Row[]=[];
  for(const m of menus){for(const c of (await ctx.store.rows('categories',{menu_id:m.id,is_active:true})).sort((a,b)=>a.sort_order-b.sort_order)){
-  const items=[];for(const item of (await ctx.store.rows('items',{venue_id,category_id:c.id,is_active:true})).sort((a,b)=>a.sort_order-b.sort_order)){
+  const items:Row[]=[];for(const item of (await ctx.store.rows('items',{venue_id,category_id:c.id,is_active:true})).sort((a,b)=>a.sort_order-b.sort_order)){
    const groups=[];for(const link of await ctx.store.rows('item_modifier_groups',{item_id:item.id})){
     const [group]=await ctx.store.rows('modifier_groups',{id:link.group_id,venue_id});if(group)groups.push({...group,modifiers:(await ctx.store.rows('modifiers',{group_id:group.id})).map(m=>({...m,price_delta_tzs:Number(m.price_delta_tzs)}))});
    }
