@@ -15,3 +15,4 @@ The initial package download completed but lifecycle setup was interrupted. Cach
 ## Scope conflicts
 
 See DECISIONS.md. Full KDS, staff WebSocket workflows, bill splitting and provider integrations remain Sprint 2 or later. The US-204 KDS latency acceptance criterion cannot be claimed by a Sprint 1 API-only ticket read model.
+`nUS-201: menu route tests cover categories, sold-out state, private ETag revalidation and venue isolation. Guest UI adds category anchors, search and responsive photo variants. Physical-device LCP is an explicit todo. Synthetic budgets will be evaluated with US-701.
