@@ -8,6 +8,8 @@ Tests written before implementation. Three Vitest route integration tests pass u
 
 ## Environment
 
+US-102: five tests written first then passed for shared joins, proven device rescans, 20-person concurrency limit, identity recovery protection and cross-session authorization. Same external DoD gates as US-101 remain open.
+
 The initial package download completed but lifecycle setup was interrupted. Cached packages were linked locally and exact versions pinned to their package manifests. A normal reproducible pnpm install and hosted CI remain required. The public registry currently returns access errors. No remote repository has been supplied; the connected samrickie account has no Cloud-Menu repository. No deployment has been performed.
 
 ## Scope conflicts
