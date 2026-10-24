@@ -46,7 +46,7 @@ export function registerOrders(app:FastifyInstance,ctx:Context,limit:(key:string
   if(result.seq&&publish)await publish(guest.venue_id,Number(result.seq)).catch(()=>{});reply.code(result.replay?200:201);return result.body;
  });
  app.get('/v1/staff/orders',async request=>{
-  const staff=await ctx.tokens.verify(request.headers.authorization?.replace(/^Bearer /,''));if(staff.kind!=='staff')throw new Problem(403,'ROLE_FORBIDDEN');
+  const staff=await ctx.staff(request);
   const query=z.object({status:z.literal('NEW').optional(),station:z.enum(['KITCHEN','BAR']).optional(),since_seq:z.coerce.number().int().min(0).default(0)}).parse(request.query);
   const station=['KITCHEN','BAR'].includes(staff.role as string)?staff.role:query.station;
   const orders=[];for(const o of await ctx.store.rows('orders',{venue_id:staff.venue_id})){const lines=(await ctx.store.rows('order_items',{order_id:o.id})).filter(l=>!station||l.station===station);if(lines.length)orders.push({...o,items:lines});}

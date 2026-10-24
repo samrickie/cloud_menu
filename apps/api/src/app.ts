@@ -6,6 +6,7 @@ import type { Store } from './store.ts';
 import {context} from './context.ts';
 import {registerMenu} from './menu.ts';
 import {registerOrders} from './orders.ts';
+import {registerStaffAuth} from './staff-auth.ts';
 export interface AppOptions {store:Store;tokenSecret:string;qrSecret:string;logger?:boolean;rateLimit?:(key:string,max:number,seconds:number)=>Promise<boolean>;publish?:(venue:string,seq:number)=>Promise<void>}
 export async function buildApp(options:AppOptions){
  const {store}=options;const tokens=auth(options.tokenSecret);
@@ -59,5 +60,6 @@ export async function buildApp(options:AppOptions){
  });
  registerMenu(app,context(store,options.tokenSecret));
  registerOrders(app,context(store,options.tokenSecret),limit,options.publish);
+ registerStaffAuth(app,context(store,options.tokenSecret),limit);
  return app;
 }
