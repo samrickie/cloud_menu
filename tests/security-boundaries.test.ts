@@ -1,0 +1,4 @@
+import {it,expect} from 'vitest';
+import {fixture} from './helpers.ts';
+it('Public session init returns RFC7807 and Retry-After after 30 requests per IP',async()=>{const f=await fixture();try{let r;for(let i=0;i<31;i++)r=await f.app.inject({method:'POST',url:'/v1/sessions/init',payload:{qr:'unknown.signature',device_id:crypto.randomUUID()}});expect(r!.statusCode).toBe(429);expect(r!.headers['retry-after']).toBe('60');expect(r!.headers['content-type']).toContain('application/problem+json');expect(r!.json().code).toBe('RATE_LIMITED');}finally{await f.app.close();}});
+it('Malformed JSON is a stable validation problem rather than an internal error',async()=>{const f=await fixture();try{const r=await f.app.inject({method:'POST',url:'/v1/sessions/init',headers:{'content-type':'application/json'},payload:'{'});expect(r.statusCode).toBe(422);expect(r.json().code).toBe('VALIDATION_ERROR');}finally{await f.app.close();}});

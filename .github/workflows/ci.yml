@@ -1,0 +1,60 @@
+name: Sprint 1 quality
+on:
+  push:
+    branches: [main, sprint-1]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: cloud_menu_test
+          POSTGRES_PASSWORD: ci-disposable-only
+          POSTGRES_DB: cloud_menu_test
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U cloud_menu_test" --health-interval 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+    env:
+      TEST_DATABASE_URL: postgres://cloud_menu_test:ci-disposable-only@127.0.0.1:5432/cloud_menu_test
+      CI_TEST_DATABASE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm exec tsx tools/check-postgres.ts
+      - run: pnpm audit --audit-level=high
+      - run: pnpm build
+      - run: pnpm budget
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - name: Lighthouse CI Fast 3G budget
+        run: |
+          pnpm exec tsx tools/demo-server.ts > /tmp/cloud-menu-demo.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:4173/health && break; sleep 1; done
+          DEMO_URL=$(node -e "fetch('http://127.0.0.1:4173/__demo/qr').then(r=>r.json()).then(x=>process.stdout.write('http://127.0.0.1:4173'+x.url))")
+          pnpm exec lhci collect --url="$DEMO_URL"
+          pnpm exec lhci assert
+          node tools/lighthouse.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verification-evidence
+          path: |
+            .artifacts/
+            .lighthouseci/
+            playwright-report/

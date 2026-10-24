@@ -1,0 +1,8 @@
+node_modules
+.git
+.env
+.local
+.artifacts
+uploads
+test-results
+playwright-report

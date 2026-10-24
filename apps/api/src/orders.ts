@@ -2,7 +2,7 @@ import type {FastifyInstance} from 'fastify';
 import {z} from 'zod';
 import {randomUUID} from 'node:crypto';
 import {hash,Problem} from './security.ts';
-import {context,idParams,type Context} from './context.ts';
+import {idParams,type Context} from './context.ts';
 import {menuData} from './menu.ts';
 import {priceLine,PricingError,tzs} from '../../../packages/shared/src/pricing.ts';
 import type {MenuItem} from '../../../packages/shared/src/index.ts';
@@ -19,21 +19,23 @@ async function priced(ctx:Context,venue:string,input:z.infer<typeof inputSchema>
  }
  return {lines,subtotal_tzs:tzs(lines.reduce((sum,line)=>sum+line.line_total_tzs,0))};
 }
-export function registerOrders(app:FastifyInstance,ctx:Context,limit:(key:string,max:number)=>Promise<void>,publish?:(venue:string,seq:number)=>Promise<void>){
+export function registerOrders(app:FastifyInstance,ctx:Context,limit:(key:string,max:number)=>Promise<void>,publish?:(venue:string,seq:number)=>Promise<void>,enabled=true){
  app.post('/v1/sessions/:id/order-quote',async request=>{
+  if(!enabled)throw new Problem(503,'ORDERING_DISABLED');
   const sid=idParams(request.params),guest=await ctx.guest(request,sid);await limit(`quote:${sid}`,30);const input=inputSchema.parse(request.body);
-  return ctx.store.tx(`venue:${guest.venue_id}`,async tx=>{const p=await priced(context(tx,''),guest.venue_id,input);return {...p,quote_token:await ctx.tokens.sign({kind:'quote',session_id:sid,request_hash:hash(JSON.stringify({...input,quote_token:undefined})),price_hash:hash(JSON.stringify(p))},300)};});
+  return ctx.store.tx(`venue:${guest.venue_id}`,async tx=>{const p=await priced({...ctx,store:tx},guest.venue_id,input);return {...p,quote_token:await ctx.tokens.sign({kind:'quote',session_id:sid,request_hash:hash(JSON.stringify({...input,quote_token:undefined})),price_hash:hash(JSON.stringify(p))},300)};});
  });
  app.post('/v1/sessions/:id/orders',async(request,reply)=>{
+  if(!enabled)throw new Problem(503,'ORDERING_DISABLED');
   const sid=idParams(request.params),guest=await ctx.guest(request,sid);await limit(`orders:${sid}`,10);const key=z.uuid().parse(request.headers['idempotency-key']);const input=inputSchema.parse(request.body);
-  const bodyHash=hash(JSON.stringify(input)),clientHash=hash(JSON.stringify({...input,quote_token:undefined})),scope=`orders:create:${sid}`;
+  const clientHash=hash(JSON.stringify({...input,quote_token:undefined})),bodyHash=clientHash,scope=`orders:create:${sid}`;
   const result=await ctx.store.tx(`venue:${guest.venue_id}`,async tx=>{
    const [session]=await tx.rows('table_sessions',{id:sid,status:'ACTIVE'});if(!session)throw new Problem(409,'SESSION_CLOSED');
    const [saved]=await tx.rows('idempotency_keys',{scope,key});
    if(saved&&new Date(saved.expires_at).getTime()>Date.now()){if(saved.request_hash!==bodyHash)throw new Problem(422,'IDEMPOTENCY_CONFLICT');return {body:saved.response_body,replay:true};}
    const [existing]=await tx.rows('orders',{session_id:sid,client_order_id:input.client_order_id});
    if(existing){if(existing.request_hash!==clientHash)throw new Problem(422,'IDEMPOTENCY_CONFLICT');const lines=await tx.rows('order_items',{order_id:existing.id});return {body:{order:{...existing,items:lines.map(l=>({...l,name:l.name_snapshot}))},repriced:false},replay:true};}
-   const p=await priced(context(tx,''),guest.venue_id,input);
+   const p=await priced({...ctx,store:tx},guest.venue_id,input);
    if(input.quote_token){const quote=await ctx.tokens.verify(input.quote_token);if(quote.kind!=='quote'||quote.session_id!==sid||quote.request_hash!==clientHash||quote.price_hash!==hash(JSON.stringify(p)))throw new Problem(409,'PRICE_CHANGED','Review the updated total before confirming.');}
    const date=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Dar_es_Salaam',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
    const previous=(await tx.rows('orders',{venue_id:guest.venue_id})).filter(o=>o.business_date===date);

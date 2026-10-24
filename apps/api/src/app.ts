@@ -1,4 +1,4 @@
-import Fastify from 'fastify';
+import Fastify,{LogController} from 'fastify';
 import { z, ZodError } from 'zod';
 import { randomUUID,randomBytes } from 'node:crypto';
 import { auth,checkQR,hash,Problem } from './security.ts';
@@ -10,23 +10,25 @@ import {registerStaffAuth} from './staff-auth.ts';
 import {registerAdminMenu} from './admin-menu.ts';
 import path from 'node:path';
 import {registerTables} from './admin-tables.ts';
-export interface AppOptions {store:Store;tokenSecret:string;qrSecret:string;logger?:boolean;uploadDir?:string;guestOrigin?:string;rateLimit?:(key:string,max:number,seconds:number)=>Promise<boolean>;publish?:(venue:string,seq:number)=>Promise<void>}
+export interface AppOptions {store:Store;tokenSecret:string;qrSecret:string;logger?:boolean;orderingEnabled?:boolean;uploadDir?:string;guestOrigin?:string;rateLimit?:(key:string,max:number,seconds:number)=>Promise<boolean>;publish?:(venue:string,seq:number)=>Promise<void>}
 export async function buildApp(options:AppOptions){
  const {store}=options;const tokens=auth(options.tokenSecret);
- const app=Fastify({logger:options.logger??true,bodyLimit:1048576,disableRequestLogging:true});
+ const app=Fastify({logger:options.logger??true,bodyLimit:1048576,logController:new LogController({disableRequestLogging:true})});
  const counters=new Map<string,{count:number;until:number}>();
  const limit=async(key:string,max:number,seconds=60)=>{
   if(options.rateLimit){if(!await options.rateLimit(key,max,seconds))throw new Problem(429,'RATE_LIMITED');return;}
   const now=Date.now();const bucket=counters.get(key);if(!bucket||bucket.until<now)counters.set(key,{count:1,until:now+seconds*1000});else if(++bucket.count>max)throw new Problem(429,'RATE_LIMITED');
  };
  app.setErrorHandler((error,request,reply)=>{
-  const p=error instanceof Problem?error:error instanceof ZodError?new Problem(422,'VALIDATION_ERROR','Please check the request.'):new Problem(500,'INTERNAL_ERROR','Please try again.');
+  const status=error instanceof Error?'statusCode'in error?Number(error.statusCode):500:500;
+  const p=error instanceof Problem?error:error instanceof ZodError||status===400?new Problem(422,'VALIDATION_ERROR','Please check the request.'):status===413?new Problem(413,'PAYLOAD_TOO_LARGE'):new Problem(500,'INTERNAL_ERROR','Please try again.');
   if(p.status===500)request.log.error({err:error instanceof Error?{name:error.name,message:error.message}:{name:'UnknownError'},request_id:request.id},'request failed');
   if(p.status===429)reply.header('Retry-After','60');
   reply.code(p.status).type('application/problem+json').send({type:`urn:cloud-menu:error:${p.code}`,title:p.code.replaceAll('_',' '),status:p.status,code:p.code,detail:p.message,request_id:request.id,...p.extra});
  });
  app.setNotFoundHandler((request,reply)=>reply.code(404).type('application/problem+json').send({type:'urn:cloud-menu:error:NOT_FOUND',title:'Not found',status:404,code:'NOT_FOUND',request_id:request.id}));
  app.addHook('onSend',async(_req,reply)=>{reply.header('X-Content-Type-Options','nosniff');if(!reply.hasHeader('Cache-Control'))reply.header('Cache-Control','no-store');});
+ app.addHook('onResponse',async(request,reply)=>{request.log.info({request_id:request.id,route:request.routeOptions.url,status:reply.statusCode,elapsed_ms:reply.elapsedTime},'request complete');});
  app.get('/health',async()=>({status:'ok'}));
  app.post('/v1/sessions/init',async(request,reply)=>{
   await limit(`init:${request.ip}`,30);
@@ -63,7 +65,7 @@ export async function buildApp(options:AppOptions){
   await store.patch('session_participants',{id:token.participant_id,session_id:id},{display_name});return {participant:{id:token.participant_id,display_name}};
  });
  registerMenu(app,context(store,options.tokenSecret));
- registerOrders(app,context(store,options.tokenSecret),limit,options.publish);
+ registerOrders(app,context(store,options.tokenSecret),limit,options.publish,options.orderingEnabled??true);
  registerStaffAuth(app,context(store,options.tokenSecret),limit);
  await registerAdminMenu(app,context(store,options.tokenSecret),options.uploadDir??path.resolve('uploads'));
  registerTables(app,context(store,options.tokenSecret),options.qrSecret,options.guestOrigin??'http://localhost:5173');

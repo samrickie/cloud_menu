@@ -1,6 +1,6 @@
 // Recovery for an interrupted local install. Uses only already-downloaded packages.
 // Normal setup and CI use pnpm install with the lockfile.
-import { readdir, readFile, symlink, mkdir, access } from 'node:fs/promises';
+import { readdir, readFile, symlink, mkdir, access, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 const root = process.cwd();
 const manifest = JSON.parse(await readFile('package.json', 'utf8'));
@@ -14,9 +14,14 @@ for (const name of Object.keys({ ...manifest.dependencies, ...manifest.devDepend
  await mkdir(path.dirname(link), {recursive:true});
  try { await access(link); } catch { await symlink(target, link, 'junction'); }
  const pkg = JSON.parse(await readFile(path.join(target, 'package.json'), 'utf8'));
+ const bins=typeof pkg.bin==='string'?{[pkg.name.split('/').at(-1)]:pkg.bin}:pkg.bin??{};
+ await mkdir(path.join(root,'node_modules/.bin'),{recursive:true});
+ for(const [command,bin]of Object.entries(bins)){
+  const relative=path.relative(path.join(root,'node_modules/.bin'),path.join(link,bin));
+  await writeFile(path.join(root,'node_modules/.bin',command+'.cmd'),`@ECHO OFF\r\nnode "%~dp0${relative}" %*\r\n`);
+ }
  if (manifest.dependencies?.[name]) manifest.dependencies[name] = pkg.version;
  if (manifest.devDependencies?.[name]) manifest.devDependencies[name] = pkg.version;
 }
-const { writeFile } = await import('node:fs/promises');
 await writeFile('package.json', JSON.stringify(manifest,null,2)+'\n');
 console.log('Linked cached dependencies; versions pinned to cached package manifests.');
