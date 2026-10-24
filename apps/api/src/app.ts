@@ -9,7 +9,8 @@ import {registerOrders} from './orders.ts';
 import {registerStaffAuth} from './staff-auth.ts';
 import {registerAdminMenu} from './admin-menu.ts';
 import path from 'node:path';
-export interface AppOptions {store:Store;tokenSecret:string;qrSecret:string;logger?:boolean;uploadDir?:string;rateLimit?:(key:string,max:number,seconds:number)=>Promise<boolean>;publish?:(venue:string,seq:number)=>Promise<void>}
+import {registerTables} from './admin-tables.ts';
+export interface AppOptions {store:Store;tokenSecret:string;qrSecret:string;logger?:boolean;uploadDir?:string;guestOrigin?:string;rateLimit?:(key:string,max:number,seconds:number)=>Promise<boolean>;publish?:(venue:string,seq:number)=>Promise<void>}
 export async function buildApp(options:AppOptions){
  const {store}=options;const tokens=auth(options.tokenSecret);
  const app=Fastify({logger:options.logger??true,bodyLimit:1048576,disableRequestLogging:true});
@@ -34,6 +35,7 @@ export async function buildApp(options:AppOptions){
   if(!table)throw new Problem(404,'QR_NOT_FOUND');
   if(!checkQR(input.qr,table.qr_code,table.qr_key_version,options.qrSecret))throw new Problem(422,'QR_SIGNATURE_INVALID');
   return store.tx(`venue:${table.venue_id}`,async tx=>{
+   const [current]=await tx.rows('dining_tables',{id:table.id,is_active:true});if(!current||!checkQR(input.qr,current.qr_code,current.qr_key_version,options.qrSecret))throw new Problem(422,'QR_SIGNATURE_INVALID');
    const [venue]=await tx.rows('venues',{id:table.venue_id});
    if(!['ACTIVE','TRIAL'].includes(venue.status))throw new Problem(403,'VENUE_SUSPENDED');
    const active=await tx.rows('table_sessions',{table_id:table.id,status:'ACTIVE'});
@@ -64,5 +66,6 @@ export async function buildApp(options:AppOptions){
  registerOrders(app,context(store,options.tokenSecret),limit,options.publish);
  registerStaffAuth(app,context(store,options.tokenSecret),limit);
  await registerAdminMenu(app,context(store,options.tokenSecret),options.uploadDir??path.resolve('uploads'));
+ registerTables(app,context(store,options.tokenSecret),options.qrSecret,options.guestOrigin??'http://localhost:5173');
  return app;
 }
