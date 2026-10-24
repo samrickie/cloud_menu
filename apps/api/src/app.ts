@@ -3,6 +3,8 @@ import { z, ZodError } from 'zod';
 import { randomUUID,randomBytes } from 'node:crypto';
 import { auth,checkQR,hash,Problem } from './security.ts';
 import type { Store } from './store.ts';
+import {context} from './context.ts';
+import {registerMenu} from './menu.ts';
 export interface AppOptions {store:Store;tokenSecret:string;qrSecret:string;logger?:boolean;rateLimit?:(key:string,max:number,seconds:number)=>Promise<boolean>}
 export async function buildApp(options:AppOptions){
  const {store}=options;const tokens=auth(options.tokenSecret);
@@ -19,7 +21,7 @@ export async function buildApp(options:AppOptions){
   reply.code(p.status).type('application/problem+json').send({type:`urn:cloud-menu:error:${p.code}`,title:p.code.replaceAll('_',' '),status:p.status,code:p.code,detail:p.message,request_id:request.id,...p.extra});
  });
  app.setNotFoundHandler((request,reply)=>reply.code(404).type('application/problem+json').send({type:'urn:cloud-menu:error:NOT_FOUND',title:'Not found',status:404,code:'NOT_FOUND',request_id:request.id}));
- app.addHook('onSend',async(_req,reply)=>{reply.header('X-Content-Type-Options','nosniff');reply.header('Cache-Control','no-store');});
+ app.addHook('onSend',async(_req,reply)=>{reply.header('X-Content-Type-Options','nosniff');if(!reply.hasHeader('Cache-Control'))reply.header('Cache-Control','no-store');});
  app.get('/health',async()=>({status:'ok'}));
  app.post('/v1/sessions/init',async(request,reply)=>{
   await limit(`init:${request.ip}`,30);
@@ -54,5 +56,6 @@ export async function buildApp(options:AppOptions){
   const {display_name}=z.object({display_name:z.string().trim().min(1).max(60)}).parse(request.body);
   await store.patch('session_participants',{id:token.participant_id,session_id:id},{display_name});return {participant:{id:token.participant_id,display_name}};
  });
+ registerMenu(app,context(store,options.tokenSecret));
  return app;
 }
