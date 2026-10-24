@@ -14,6 +14,7 @@ function App(){
   }catch{setError('error');}
  }
  useEffect(()=>{void enter();},[]);
- return <main><header><strong>Cloud-Menu</strong><button onClick={()=>{const l=locale==='en'?'sw':'en';setLocale(l);localStorage.setItem('locale',l);document.documentElement.lang=l;}}>EN / SW</button></header>{entry?<><h1>{entry.venue.name}</h1><p>{entry.table.label}</p><h2>{t.menu}</h2></>:<><h1>{t.menu}</h1><p role="status">{error?t[error as keyof typeof t]:t.loading}</p>{error&&<button onClick={enter}>{t.retry}</button>}</>}</main>;
+ async function rename(name:string){const r=await fetch(`/v1/sessions/${entry.session.id}/participant`,{method:'PATCH',headers:{'Content-Type':'application/json',authorization:`Bearer ${entry.session_token}`},body:JSON.stringify({display_name:name})});if(r.ok){const data=await r.json();setEntry({...entry,participant:data.participant});}else setError('error');}
+ return <main><header><strong>Cloud-Menu</strong><button onClick={()=>{const l=locale==='en'?'sw':'en';setLocale(l);localStorage.setItem('locale',l);document.documentElement.lang=l;}}>EN / SW</button></header>{entry?<><h1>{entry.venue.name}</h1><p>{entry.table.label}</p><label>{locale==='en'?'Your name':'Jina lako'}<input aria-label={locale==='en'?'Your name':'Jina lako'} maxLength={60} value={entry.participant.display_name} onBlur={e=>void rename(e.currentTarget.value)}/></label><h2>{t.menu}</h2></>:<><h1>{t.menu}</h1><p role="status">{error?t[error as keyof typeof t]:t.loading}</p>{error&&<button onClick={enter}>{t.retry}</button>}</>}</main>;
 }
 render(<App/>,document.getElementById('app')!);
