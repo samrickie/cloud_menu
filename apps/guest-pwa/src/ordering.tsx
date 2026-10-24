@@ -1,0 +1,11 @@
+import {useEffect,useState} from 'preact/hooks';
+import {MenuView} from './menu-view.tsx';
+import {addLine,editLine,restoreCart,saveCart,cartTotal,type CartLine} from '../../../packages/shared/src/cart.ts';
+import {money} from '../../../packages/shared/src/index.ts';
+import {SubmitOrder} from './submit-order.tsx';
+export function Ordering({entry,locale}:{entry:any;locale:'en'|'sw'}){
+ const [cart,setCart]=useState<CartLine[]>(()=>restoreCart(localStorage,entry.session.id)),[open,setOpen]=useState(false),[error,setError]=useState('');
+ useEffect(()=>{try{saveCart(localStorage,entry.session.id,cart);}catch{setError(locale==='en'?'Cart could not be saved on this device.':'Kikapu hakikuhifadhiwa kwenye kifaa hiki.');}},[cart]);
+ function update(id:string,change:Partial<Pick<CartLine,'quantity'|'note'>>){try{setCart(editLine(cart,id,change));setError('');}catch(e){setError((e as Error).message);}}
+ return <><MenuView entry={entry} locale={locale} onAdd={(i,s,q,n)=>setCart(addLine(cart,i,s,q,n))}/>{open&&<section class="cart-panel" aria-label={locale==='en'?'Your cart':'Kikapu chako'}><div class="sheet-head"><h2>{locale==='en'?'Your cart':'Kikapu chako'}</h2><button onClick={()=>setOpen(false)}>{locale==='en'?'Close':'Funga'}</button></div>{cart.length===0&&<p>{locale==='en'?'Your cart is empty.':'Kikapu chako ni tupu.'}</p>}{cart.map(l=><article><h3>{locale==='sw'&&l.item.name_sw?l.item.name_sw:l.item.name_en}</h3><p>{money(l.line_total_tzs)}</p><label>{locale==='en'?'Quantity':'Idadi'}<input type="number" min="1" max="99" value={l.quantity} onInput={e=>update(l.id,{quantity:Number(e.currentTarget.value)})}/></label><label>{locale==='en'?'Kitchen note':'Maelezo kwa mpishi'}<input maxLength={500} value={l.note} onInput={e=>update(l.id,{note:e.currentTarget.value})}/></label><button onClick={()=>setCart(cart.filter(x=>x.id!==l.id))}>{locale==='en'?'Remove':'Ondoa'}</button></article>)}{error&&<p role="alert">{error}</p>}<p><strong>{money(cartTotal(cart))}</strong></p><SubmitOrder entry={entry} cart={cart} locale={locale} done={()=>setCart([])}/></section>}<button class="cart-bar" onClick={()=>setOpen(!open)}>{locale==='en'?'View cart':'Ona kikapu'} ({cart.reduce((s,l)=>s+l.quantity,0)}) · {money(cartTotal(cart))}</button></>;
+}

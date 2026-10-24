@@ -1,0 +1,57 @@
+{
+  "name": "cloud-menu",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm --filter @cloud-menu/guest-pwa build && pnpm --filter @cloud-menu/staff build",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "db:migrate": "tsx tools/migrate.ts",
+    "db:seed": "tsx tools/seed.ts",
+    "budget": "node tools/bundle-budget.mjs"
+  },
+  "dependencies": {
+    "@fastify/cors": "11.3.1",
+    "@fastify/multipart": "9.4.0",
+    "@fastify/static": "8.3.0",
+    "bcryptjs": "3.0.3",
+    "csv-parse": "6.2.1",
+    "fastify": "5.12.7",
+    "ioredis": "5.11.1",
+    "jose": "6.2.13",
+    "pdf-lib": "1.17.1",
+    "pg": "8.23.1",
+    "pg-boss": "12.38.0",
+    "preact": "10.29.8",
+    "qrcode": "1.5.4",
+    "sharp": "0.34.5",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@lhci/cli": "0.15.1",
+    "@playwright/test": "1.64.1",
+    "@preact/preset-vite": "2.10.6",
+    "@tailwindcss/vite": "4.3.3",
+    "@types/node": "24.19.2",
+    "@types/pg": "8.23.1",
+    "@types/qrcode": "1.5.6",
+    "eslint": "9.39.5",
+    "globals": "16.5.0",
+    "tailwindcss": "4.3.3",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.0",
+    "vite": "7.3.7",
+    "vite-plugin-pwa": "1.3.0",
+    "vitest": "3.2.7"
+  }
+}
