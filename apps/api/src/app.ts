@@ -10,7 +10,8 @@ import {registerStaffAuth} from './staff-auth.ts';
 import {registerAdminMenu} from './admin-menu.ts';
 import path from 'node:path';
 import {registerTables} from './admin-tables.ts';
-export interface AppOptions {store:Store;tokenSecret:string;qrSecret:string;logger?:boolean;orderingEnabled?:boolean;uploadDir?:string;guestOrigin?:string;rateLimit?:(key:string,max:number,seconds:number)=>Promise<boolean>;publish?:(venue:string,seq:number)=>Promise<void>}
+import {registerOwner} from './owner.ts';
+export interface AppOptions {store:Store;tokenSecret:string;qrSecret:string;logger?:boolean;ownerRegistrationEnabled?:boolean;orderingEnabled?:boolean;uploadDir?:string;guestOrigin?:string;rateLimit?:(key:string,max:number,seconds:number)=>Promise<boolean>;publish?:(venue:string,seq:number)=>Promise<void>}
 export async function buildApp(options:AppOptions){
  const {store}=options;const tokens=auth(options.tokenSecret);
  const app=Fastify({logger:options.logger??true,bodyLimit:1048576,logController:new LogController({disableRequestLogging:true})});
@@ -67,6 +68,7 @@ export async function buildApp(options:AppOptions){
  registerMenu(app,context(store,options.tokenSecret));
  registerOrders(app,context(store,options.tokenSecret),limit,options.publish,options.orderingEnabled??true);
  registerStaffAuth(app,context(store,options.tokenSecret),limit);
+ registerOwner(app,context(store,options.tokenSecret),limit,options.ownerRegistrationEnabled??true);
  await registerAdminMenu(app,context(store,options.tokenSecret),options.uploadDir??path.resolve('uploads'));
  registerTables(app,context(store,options.tokenSecret),options.qrSecret,options.guestOrigin??'http://localhost:5173');
  return app;

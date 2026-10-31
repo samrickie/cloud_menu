@@ -1,5 +1,22 @@
 # Additive Sprint 1 contracts
 
+## Expanded owner contracts
+
+New owner routes use the same problem envelope and no-store response policy. Account and staff bearer tokens have distinct kinds and one-hour expiry. Owner routes accept strict objects; venue IDs are taken from authenticated context, never client profile fields.
+
+| Route | Input / result |
+| --- | --- |
+| POST `/v1/owner/accounts` | `{name,email,password}` (12–72 UTF-8 bytes); account token; production registration disabled by default |
+| POST `/v1/owner/auth/login` | Email/password; account token and owned venue summaries; throttled and locks after five recent failures |
+| POST `/v1/owner/venues` | Account token; `{name,slug,venue_type}`; private trial venue, empty bilingual category presets, suggested station defaults, scoped owner staff token |
+| POST `/v1/owner/venues/:id/select` | Account token; returns staff token only for an owned venue; foreign ID returns 404 |
+| GET `/v1/owner/site` | Scoped owner token; own draft settings and verification/publication states |
+| PUT `/v1/owner/site` | Scoped owner token; partial theme/template, brand hex/foreground, unique EN/SW languages, ordered unique sections including Menu, bilingual welcome, weekday opening/closing hours; logo/cover currently null only |
+| POST `/v1/owner/site/publish` | Scoped owner token; validates launch prerequisites; 422 ONBOARDING_INCOMPLETE with missing steps |
+| GET `/v1/sites/:slug` | Public, throttled; published active/trial site with whitelisted menu fields; drafts return 404 |
+
+Logo/cover uploads, email verification delivery, subdomain DNS routing and payment launch verification are pending integration gates. No verification state can be asserted by the client.
+
 The supplied architecture remains authoritative for its named endpoints. All errors are RFC 7807 `application/problem+json`, including `code`, `status`, `detail`, and correlation `request_id`.
 
 ## Guest

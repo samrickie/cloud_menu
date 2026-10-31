@@ -1,5 +1,14 @@
 # Sprint 1 decisions
 
+## Expanded platform decisions — 31 October 2026
+
+The later user request expands the original Sprint 1 limit. New work is on `feature/luxury-venue-platform` from the complete local implementation. Earlier Sprint 1 scope statements below remain historical delivery records.
+
+18. The saved HTML supplied by the user is the visual source after online canvas access was declined. See `DESIGN_REFERENCE.md` for its internal conflicts. Use rendered Cormorant Garamond/Manrope, exact requested hex tokens and four named themes; enlarge undersized sample controls to 44 px and calculate contrast instead of trusting the canvas's incorrect white-on-gold claim. The licensed Latin font assets are self-hosted.
+19. Owner accounts use email/password with bcrypt cost 12, separate one-hour account tokens, and explicit owned-venue selection to issue the existing scoped staff token. Registration defaults off in the production server until email delivery/verification is implemented. An owner staff row has a random, undisclosed PIN hash, so account registration does not create a usable shared staff PIN. Existing PIN flows remain for separately provisioned staff.
+20. Owner API additions are specified in `API_EXTENSIONS.md`. Draft profiles are private; public site responses whitelist fields and require publication. Go-live currently requires verified account, active menu item, active table and active/trial venue. Receiving-account verification is a later slice and must be added to launch gates before payment-enabled production launch. No endpoint marks email or payouts verified from client input. Logo/cover input is currently limited to null pending owned-asset upload integration.
+21. Type presets create empty bilingual categories and return suggested KITCHEN/BAR routing. They create no priced items or fabricated venue records. Account/slug uniqueness is serialized with database advisory locks and backed by unique constraints. Disabled owner accounts revoke access to admin routes immediately.
+
 The supplied documents are the product authority. Original Office files are preserved under their requested folders. `0001_init.sql` is byte-for-byte the supplied `03_cloud_menu_schema.sql` (its PostgreSQL 15+ header is compatible with the requested PostgreSQL 16).
 
 1. Sprint scope: follow the detailed roadmap S1 exit criterion, ticket data visible through API. US-204 mentions KDS within 2 seconds, while US-501/502 put the full queue and state transitions in S2. S1 stores ticket snapshots and exposes a read-only staff ticket list. No split, bill, payment or ticket-state workflows are implemented.

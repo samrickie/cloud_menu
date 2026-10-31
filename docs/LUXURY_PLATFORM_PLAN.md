@@ -4,7 +4,7 @@ The 31 October request expands the earlier Sprint 1-only scope. Work continues o
 
 ## Source access and constraints
 
-The linked Claude canvas was not available through web access, and browser policy explicitly declined access to claude.ai. No alternate access is attempted. Exact canvas layout/spacing/visual comparisons are unverified. Implementation uses the detailed tokens and flows supplied directly by the user. Existing local Office source documents and migration 0001 are retained unchanged.
+The linked Claude canvas was not available through web access, and browser policy explicitly declined access to claude.ai. No alternate access is attempted. The user subsequently supplied a self-contained local HTML export containing all six boards and licensed font assets. Its authored HTML/CSS now supplies the visual reference. The reference is extracted without executing its embedded scripts; layout comparison screenshots remain to be captured. Existing local Office source documents and migration 0001 are retained unchanged.
 
 The source vision lists card payments and promotions as post-MVP. The expanded request asks for them. Until provider documentation exists, payment integration remains a marked adapter boundary and sandbox; no invented hosted-checkout, wallet, bank verification or webhook protocol is presented as real. Promotional content can be modeled without asserting a real provider integration.
 

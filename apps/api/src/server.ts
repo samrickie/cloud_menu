@@ -4,10 +4,10 @@ import Redis from 'ioredis';
 import {buildApp} from './app.ts';
 import {PostgresStore} from './store.ts';
 import path from 'node:path';
-const env=z.object({DATABASE_URL:z.string().min(1),REDIS_URL:z.string().min(1),TOKEN_SECRET:z.string().min(64),QR_SECRET:z.string().min(64),GUEST_ORIGIN:z.url(),PORT:z.coerce.number().default(3000),UPLOAD_DIR:z.string().default('./uploads'),ORDERING_ENABLED:z.enum(['true','false']).default('false')}).parse(process.env);
+const env=z.object({DATABASE_URL:z.string().min(1),REDIS_URL:z.string().min(1),TOKEN_SECRET:z.string().min(64),QR_SECRET:z.string().min(64),GUEST_ORIGIN:z.url(),PORT:z.coerce.number().default(3000),UPLOAD_DIR:z.string().default('./uploads'),OWNER_REGISTRATION_ENABLED:z.enum(['true','false']).default('false'),ORDERING_ENABLED:z.enum(['true','false']).default('false')}).parse(process.env);
 const pool=new pg.Pool({connectionString:env.DATABASE_URL,max:10});const redis=new Redis(env.REDIS_URL,{maxRetriesPerRequest:1});
 await pool.query('SELECT 1');await redis.ping();
-const app=await buildApp({store:new PostgresStore(pool),tokenSecret:env.TOKEN_SECRET,qrSecret:env.QR_SECRET,guestOrigin:env.GUEST_ORIGIN,orderingEnabled:env.ORDERING_ENABLED==='true',uploadDir:path.resolve(env.UPLOAD_DIR),rateLimit:async(key,max,seconds)=>{
+const app=await buildApp({store:new PostgresStore(pool),ownerRegistrationEnabled:env.OWNER_REGISTRATION_ENABLED==='true',tokenSecret:env.TOKEN_SECRET,qrSecret:env.QR_SECRET,guestOrigin:env.GUEST_ORIGIN,orderingEnabled:env.ORDERING_ENABLED==='true',uploadDir:path.resolve(env.UPLOAD_DIR),rateLimit:async(key,max,seconds)=>{
  const n=await redis.eval("local n=redis.call('INCR',KEYS[1]); if n==1 then redis.call('EXPIRE',KEYS[1],ARGV[1]); end; return n",1,'cloud-menu:rate:'+key,seconds);return Number(n)<=max;
 },publish:async(venue,seq)=>{await redis.publish('venue:'+venue,String(seq));}});
 app.get('/ready',async()=>{await pool.query('SELECT 1');await redis.ping();return {status:'ready'};});
