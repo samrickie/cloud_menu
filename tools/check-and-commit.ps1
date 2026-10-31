@@ -8,6 +8,15 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 & $runtimeNode node_modules/vitest/vitest.mjs run --reporter=dot --reporter=json --outputFile=.artifacts/vitest.json
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 if (Test-Path 'tests/browser/guest.spec.ts') {
+  foreach ($appDirectory in @('apps/guest-pwa','apps/staff','apps/owner')) {
+    if (Test-Path "$appDirectory/vite.config.ts") {
+      Push-Location $appDirectory
+      try { & $runtimeNode ../../node_modules/vite/bin/vite.js build; $buildExit=$LASTEXITCODE } finally { Pop-Location }
+      if ($buildExit -ne 0) { exit $buildExit }
+    }
+  }
+  & $runtimeNode tools/bundle-budget.mjs
+  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
   $env:PATH=(Split-Path $runtimeNode)+';'+$env:PATH
   $env:LOCAL_EDGE='1'
   & $runtimeNode node_modules/@playwright/test/cli.js test

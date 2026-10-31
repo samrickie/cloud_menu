@@ -8,7 +8,7 @@ New owner routes use the same problem envelope and no-store response policy. Acc
 | --- | --- |
 | POST `/v1/owner/accounts` | `{name,email,password}` (12–72 UTF-8 bytes); account token; production registration disabled by default |
 | POST `/v1/owner/auth/login` | Email/password; account token and owned venue summaries; throttled and locks after five recent failures |
-| POST `/v1/owner/venues` | Account token; `{name,slug,venue_type}`; private trial venue, empty bilingual category presets, suggested station defaults, scoped owner staff token |
+| POST `/v1/owner/venues` | Account token; `{name,slug,venue_type}`; private trial venue, bilingual category presets with station defaults, a flagged default sample table and unavailable Sample data item, scoped owner staff token |
 | POST `/v1/owner/venues/:id/select` | Account token; returns staff token only for an owned venue; foreign ID returns 404 |
 | GET `/v1/owner/site` | Scoped owner token; own draft settings and verification/publication states |
 | PUT `/v1/owner/site` | Scoped owner token; partial theme/template, brand hex/foreground, unique EN/SW languages, ordered unique sections including Menu, bilingual welcome, weekday opening/closing hours; logo/cover currently null only |
@@ -62,3 +62,5 @@ New and rotated QR tokens retain the documented `code.signature` endpoint shape.
 Menu writes bump version for ETag revalidation within the specified 60-second freshness window. All mutation queries validate the authenticated venue relationship. Item prices are capped at 1 billion TZS per item, quantities at 99, lines at 99 to keep API arithmetic safely within JavaScript's exact integer range. Database BIGINT values are converted only after safe-integer validation.
 
 Reports, bill/split/payment endpoints and full KDS updates are not implemented. The manager-report guard returns 501 for managers and 403 for kitchen users, proving the role boundary without implementing future reporting stories.
+
+Expanded menu creation permits omitted station, using the category default station (KITCHEN for existing categories). Editing an onboarding sample item adopts it as real inventory; newly created normal items are real by default. A range/single table request adopts a matching flagged default sample table with the explicitly assigned metadata. Other existing tables retain metadata on duplicate generation.

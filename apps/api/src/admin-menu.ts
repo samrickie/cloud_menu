@@ -10,15 +10,15 @@ import {menuData} from './menu.ts';
 import {Problem} from './security.ts';
 import type {Store,Row} from './store.ts';
 const text=z.string().trim().min(1).max(120),money=z.number().int().min(0).max(1000000000);
-const itemSchema=z.object({category_id:z.uuid(),name_en:text,name_sw:text.optional(),description_en:z.string().max(1000).optional(),description_sw:z.string().max(1000).optional(),price_tzs:money,station:z.enum(['KITCHEN','BAR']),is_available:z.boolean().default(true),is_active:z.boolean().default(true),image_key:z.string().max(100).nullable().optional(),modifier_group_ids:z.array(z.uuid()).max(20).default([])});
+const itemSchema=z.object({category_id:z.uuid(),name_en:text,name_sw:text.optional(),description_en:z.string().max(1000).optional(),description_sw:z.string().max(1000).optional(),price_tzs:money,station:z.enum(['KITCHEN','BAR']).optional(),is_available:z.boolean().default(true),is_active:z.boolean().default(true),image_key:z.string().max(100).nullable().optional(),modifier_group_ids:z.array(z.uuid()).max(20).default([])});
 const groupSchema=z.object({name_en:text,name_sw:text.optional(),selection:z.enum(['SINGLE','MULTI']),min_select:z.number().int().min(0).max(20),max_select:z.number().int().min(1).max(20),modifiers:z.array(z.object({name_en:text,name_sw:text.optional(),price_delta_tzs:z.number().int().min(-1000000000).max(1000000000),is_available:z.boolean().default(true)})).max(30)}).refine(g=>g.max_select>=g.min_select&&(g.selection==='MULTI'||g.max_select===1)&&g.modifiers.length>=g.min_select);
 async function bump(tx:Store,venue:string,staff:string,entity:string){for(const m of await tx.rows('menus',{venue_id:venue,is_active:true}))await tx.patch('menus',{id:m.id},{version:m.version+1});await tx.add('audit_log',{venue_id:venue,actor_type:'STAFF',actor_id:staff,action:'MENU_EDIT',entity_type:'menu',entity_id:entity});}
 async function saveItem(tx:Store,venue:string,staff:string,payload:unknown,id?:string){
  const input=itemSchema.parse(payload);const [category]=await tx.rows('categories',{id:input.category_id});const [menu]=category?await tx.rows('menus',{id:category.menu_id,venue_id:venue}):[];
  if(!category||!menu)throw new Problem(403,'VENUE_FORBIDDEN');if(input.image_key&&!input.image_key.startsWith(venue+'-'))throw new Problem(403,'VENUE_FORBIDDEN');
  for(const g of input.modifier_group_ids)if(!(await tx.rows('modifier_groups',{id:g,venue_id:venue})).length)throw new Problem(403,'VENUE_FORBIDDEN');
- const {modifier_group_ids,...data}=input;const itemId=id??randomUUID();
- if(id){if(!(await tx.rows('items',{id,venue_id:venue})).length)throw new Problem(404,'ITEM_NOT_FOUND');await tx.patch('items',{id,venue_id:venue},data);await tx.remove('item_modifier_groups',{item_id:id});}
+ const {modifier_group_ids,...fields}=input;const data={...fields,station:input.station??category.default_station??'KITCHEN'};const itemId=id??randomUUID();
+ if(id){if(!(await tx.rows('items',{id,venue_id:venue})).length)throw new Problem(404,'ITEM_NOT_FOUND');await tx.patch('items',{id,venue_id:venue},{...data,is_sample:false});await tx.remove('item_modifier_groups',{item_id:id});}
  else await tx.add('items',{id:itemId,venue_id:venue,sort_order:0,...data});
  for(const group_id of new Set(modifier_group_ids))await tx.add('item_modifier_groups',{item_id:itemId,group_id});await bump(tx,venue,staff,itemId);return (await tx.rows('items',{id:itemId}))[0];
 }

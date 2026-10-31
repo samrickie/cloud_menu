@@ -1,6 +1,6 @@
 # Cloud-Menu
 
-QR-based guest ordering for lounges and casual dining in Dar es Salaam. This branch implements the Sprint 1 ordering and administration foundation. All supplied examples and generated fixtures are explicitly **DEMO** data. Split bills, real mobile-money integration, full KDS state management and waiter dashboards belong to later sprints.
+QR-based guest ordering for lounges and casual dining in Dar es Salaam. This branch extends the Sprint 1 ordering and administration foundation with the luxury venue platform in incremental slices. See [delivery status](docs/LUXURY_DELIVERY_STATUS.md) and [visual reference](docs/DESIGN_REFERENCE.md). All supplied examples and generated fixtures are explicitly **DEMO** data. Split bills, real mobile-money integration, full KDS state management and waiter dashboards belong to later sprints.
 
 ## Setup
 
@@ -11,7 +11,7 @@ Use Node.js 24 LTS, pnpm 10.33.0, Docker Compose and Git. The workstation used f
 3. Run `docker compose up -d`.
 4. Run `node --env-file=.env --import tsx tools/migrate.ts`. Migration 0001 is the supplied SQL unchanged. The migration runner verifies checksums of applied migrations and uses a transaction and advisory lock.
 5. Optional demo: set `DEMO_STAFF_PIN` in `.env`, then run `node --env-file=.env --import tsx tools/seed.ts`. It prints the **DEMO** venue code, staff identifier and guest QR URL. It refuses to overwrite an existing demo venue. The PIN is hashed with bcrypt before storage and is never printed.
-6. Run `pnpm dev`. API: port 3000. Guest PWA: port 5173. Staff admin: port 5174. Vite proxies `/v1` and `/media` to the API.
+6. Run `pnpm dev`. API: port 3000. Guest PWA: port 5173. Staff admin: port 5174. Owner: http://localhost:5175/owner/. Vite proxies `/v1` and `/media` to the API.
 
 For a disposable browser demo after building, use `node --import tsx tools/demo-server.ts` and open its printed guest URL. That server uses test-only memory state and binds to loopback. It is never used by the production start script.
 
@@ -21,10 +21,10 @@ For a disposable browser demo after building, use `node --import tsx tools/demo-
 | --- | --- |
 | `pnpm test` | Unit and Fastify route integration tests with a test-only memory store |
 | `pnpm typecheck` / `pnpm lint` | TypeScript and ESLint checks |
-| `pnpm build` | Both Preact/Vite apps and Workbox guest service worker |
+| `pnpm build` | Guest, staff and owner apps; Workbox guest service worker |
 | `pnpm budget` | Measure initial production JS including static imports, enforce 150,000 gzip bytes |
 | `pnpm exec playwright install chromium` | Install the CI browser |
-| `pnpm test:e2e` | Guest browser flow, reload persistence, cached shell/menu and offline banner at 360 px |
+| `pnpm test:e2e` | Guest flows plus owner/site/table flows, visual snapshots and folded/unfolded layouts |
 | `node tools/lighthouse.mjs` | Three cold runs per Fast 3G/4G profile, 4x CPU, p75 budget; requires demo server on 4173 |
 | `pnpm exec tsx tools/check-postgres.ts` | Explicitly gated isolated PostgreSQL migration/concurrency/rollback checks |
 | `pnpm --filter @cloud-menu/api start` | Production API; requires configured PostgreSQL, Redis and secrets |
@@ -60,3 +60,5 @@ The image adapter stores responsive WebP files in `UPLOAD_DIR`. Production needs
 Repository: [samrickie/cloud_menu](https://github.com/samrickie/cloud_menu). Publication uses the connected GitHub API because direct Git traffic is blocked. The architecture PDF (a duplicate of the included architecture DOCX) and wireframe PowerPoint remain local because the company proxy blocked their upload. The local original source snapshot remains preserved.
 
 Deployment is pending a configured staging environment and verification gates. A green local suite does not imply PO acceptance, peer review, successful hosted CI or production readiness.
+
+Owner accounts are separate from staff PIN login. Set `OWNER_REGISTRATION_ENABLED=true` only for local development while verified email delivery is pending. The loopback demo server exposes `/owner/` and uses disposable memory state; production never uses it. Owner bearer tokens are held in memory and sign-out clears them; a reload requires signing in again.

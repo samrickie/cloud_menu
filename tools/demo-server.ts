@@ -12,7 +12,8 @@ for(const [index,name]of ['Drinks','Grill','Snacks'].entries()){
  if(index===0){const group=await f.store.add('modifier_groups',{id:randomUUID(),venue_id:f.venue.id,name_en:'Mixer',name_sw:'Kinywaji cha kuchanganya',selection:'SINGLE',min_select:1,max_select:1});await f.store.add('modifiers',{id:randomUUID(),group_id:group.id,name_en:'Soda',name_sw:'Soda',price_delta_tzs:0,is_available:true});await f.store.add('item_modifier_groups',{item_id:item.id,group_id:group.id});}
 }
 f.app.get('/__demo/qr',async()=>{const table=await f.store.add('dining_tables',{...f.table,id:randomUUID(),qr_code:randomUUID()});return {url:`/?qr=${encodeURIComponent(signQR(table.qr_code,1,secrets.qr))}`};});
-await f.app.register(fastifyStatic,{root:path.resolve('apps/guest-pwa/dist'),prefix:'/',index:'index.html'});
+await f.app.register(fastifyStatic,{root:path.resolve('apps/owner/dist'),prefix:'/owner/',index:'index.html'});
+await f.app.register(fastifyStatic,{decorateReply:false,root:path.resolve('apps/guest-pwa/dist'),prefix:'/',index:'index.html'});
 await f.app.listen({host:'127.0.0.1',port:4173});
 console.log('DEMO ONLY: http://127.0.0.1:4173/?qr='+encodeURIComponent(f.qr));
 for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>void f.app.close().then(()=>process.exit(0)));

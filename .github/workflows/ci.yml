@@ -1,7 +1,7 @@
 name: Sprint 1 quality
 on:
   push:
-    branches: [main, sprint-1]
+    branches: [main, sprint-1, feature/luxury-venue-platform]
   pull_request:
 permissions:
   contents: read
