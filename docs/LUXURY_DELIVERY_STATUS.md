@@ -45,3 +45,7 @@ Server-side bill totals aggregate immutable order snapshots, exclude rejected/ca
 ## US-302 equal-split API foundation
 
 Local tests cover the exact 90,000/3 and 100,000/3 acceptance examples, all payer counts 1–50 at boundary totals including maximum safe integer money, ordered server-created slots, invalid counts/body/session fields, draft replacement and locked-split denial. The tenant-key/composite-FK migration is authored but PostgreSQL execution remains unverified. Guest split UI, claims and locking follow in the next stories; no payment-provider behavior is claimed.
+
+## US-303 itemized-split API foundation
+
+Seven local tests cover proportional extras, partial/unassigned balances, concurrent double-claim rejection, the documented coordinator payload and retry, ownership-stealing denial, foreign item/split denial, atomic slot claims, cross-session/venue isolation, and exact largest-remainder money. Paid portions are excluded using scoped SQL aggregates. PostgreSQL execution, split-lock integration and guest bill/split UI remain outstanding at this slice.

@@ -11,3 +11,11 @@ export function equalSplit(total:number,payers:number):number[]{
  const amount=BigInt(tzs(total)),n=BigInt(payers),base=amount/n,remainder=amount%n;
  return Array.from({length:payers},(_,i)=>safe(base+(BigInt(i)<remainder?1n:0n)));
 }
+export function itemizedSplit(subtotal:number,total:number,bases:number[]){
+ const base=BigInt(tzs(subtotal)),gross=BigInt(tzs(total));if(gross<base||!bases.length||bases.length>50)throw new PricingError('INVALID_MONEY','Invalid itemized total');
+ const weights=bases.map(n=>BigInt(tzs(n))),assigned=weights.reduce((a,b)=>a+b,0n);if(assigned>base)throw new PricingError('ALREADY_CLAIMED','Allocated items exceed subtotal');
+ if(base===0n){if(gross!==0n)throw new PricingError('INVALID_MONEY','No item base for extras');return {amounts:bases.map(()=>0),unassigned_tzs:0,unassigned_items_tzs:0};}
+ const extra=gross-base,parts=weights.map(w=>extra*w/base);
+ if(assigned===base){const left=Number(extra-parts.reduce((a,b)=>a+b,0n));const order=weights.map((w,index)=>({index,remainder:extra*w%base})).sort((a,b)=>a.remainder===b.remainder?a.index-b.index:a.remainder>b.remainder?-1:1);for(let i=0;i<left;i++)parts[order[i].index]++;}
+ const amounts=weights.map((w,i)=>safe(w+parts[i]));return {amounts,unassigned_tzs:safe(gross-amounts.reduce((n,a)=>n+BigInt(a),0n)),unassigned_items_tzs:safe(base-assigned)};
+}
