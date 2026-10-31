@@ -82,3 +82,9 @@ Guest initialization additionally returns theme, brand colour/foreground and is_
 ## Current table bill
 
 GET `/v1/sessions/:id/bill` uses the documented guest/session authorization. Returns `{bill}` with ID, version, status, currency TZS, non-rejected/non-cancelled snapshot items (quantity, unit/modifier/line amounts and modifier names), subtotal, service, tax, total, paid and balance. Included VAT is disclosed as tax_tzs but is not added to total a second time. Service/VAT settings are snapshotted on bill creation; financial input changes increment version and emit bill.updated in the same transaction. Repeated reads are stable. The tax-base/rounding assumption is recorded in DECISIONS and requires fiscal review before deployment.
+
+## Equal splits
+
+POST `/v1/sessions/:id/splits` implements the documented EQUAL request `{mode:'EQUAL',payer_count:1..50}`. It server-calculates the current unpaid balance, creates ordered slots and emits split.updated atomically. The first remainder slots receive one extra TZS. Replacing an unpaid OPEN draft cancels that draft; a LOCKED split returns 409 SPLIT_ALREADY_LOCKED and a paid draft returns 409 PAYMENTS_RECEIVED. Zero-value slots need no payment and are marked settled without creating a provider transaction. A bill with no balance returns 409 NOTHING_TO_PAY. Bill reads include the current split for reload recovery. ITEMIZED and locking are implemented in the following stories.
+
+Split/share/allocation rows carry explicit venue and session keys, with composite foreign keys and a database allocation-scope trigger. Slot indices persist rounding order. All API reads/writes filter those keys. Migration execution remains subject to PostgreSQL CI validation.

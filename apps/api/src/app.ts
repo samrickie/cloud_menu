@@ -15,6 +15,7 @@ import {registerGuestOperations} from './guest-operations.ts';
 import {RealtimeBroker,registerGuestEvents,type ExternalSubscribe} from './realtime.ts';
 import {registerBilling} from './billing.ts';
 import {PricingError} from '../../../packages/shared/src/pricing.ts';
+import {registerSplits} from './splits.ts';
 export interface AppOptions {store:Store;tokenSecret:string;qrSecret:string;logger?:boolean;ownerRegistrationEnabled?:boolean;orderingEnabled?:boolean;uploadDir?:string;guestOrigin?:string;rateLimit?:(key:string,max:number,seconds:number)=>Promise<boolean>;publish?:(venue:string,seq:number)=>Promise<void>;subscribe?:ExternalSubscribe}
 export async function buildApp(options:AppOptions){
  const {store}=options;const tokens=auth(options.tokenSecret);const broker=new RealtimeBroker(store,options.subscribe);const publish=async(venue:string,seq:number)=>{await broker.refresh(venue);await options.publish?.(venue,seq);};
@@ -75,6 +76,7 @@ export async function buildApp(options:AppOptions){
  registerStaffAuth(app,context(store,options.tokenSecret),limit);
  registerGuestOperations(app,context(store,options.tokenSecret),limit,publish);
  registerBilling(app,context(store,options.tokenSecret),publish);
+ registerSplits(app,context(store,options.tokenSecret),limit,publish);
  registerGuestEvents(app,context(store,options.tokenSecret),broker,limit);
  registerOwner(app,context(store,options.tokenSecret),limit,options.ownerRegistrationEnabled??true);
  await registerAdminMenu(app,context(store,options.tokenSecret),options.uploadDir??path.resolve('uploads'));

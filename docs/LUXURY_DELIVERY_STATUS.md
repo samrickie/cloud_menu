@@ -41,3 +41,7 @@ Remaining guest/operations work: staff state changes and availability events, bi
 ## US-301 billing API foundation
 
 Server-side bill totals aggregate immutable order snapshots, exclude rejected/cancelled lines, retain modifier amounts, disclose included/exclusive tax and use integer BigInt rounding. Bills snapshot venue rates, emit atomic bill.updated events and have stable versions on repeated reads. Local tests cover three-order aggregation, updates, venue/session isolation, rate stability, unsafe/fractional money and loopback SSE timing. Guest bill UI, split/payment workflows, tax/fiscal approval and PostgreSQL execution remain separate gates; this API slice does not claim the complete billing experience is production-ready.
+
+## US-302 equal-split API foundation
+
+Local tests cover the exact 90,000/3 and 100,000/3 acceptance examples, all payer counts 1–50 at boundary totals including maximum safe integer money, ordered server-created slots, invalid counts/body/session fields, draft replacement and locked-split denial. The tenant-key/composite-FK migration is authored but PostgreSQL execution remains unverified. Guest split UI, claims and locking follow in the next stories; no payment-provider behavior is claimed.
