@@ -7,6 +7,7 @@ import {menuData} from './menu.ts';
 import {priceLine,PricingError,tzs} from '../../../packages/shared/src/pricing.ts';
 import type {MenuItem} from '../../../packages/shared/src/index.ts';
 import type {Row} from './store.ts';
+import {syncBill} from './billing.ts';
 const inputSchema=z.object({client_order_id:z.uuid(),note:z.string().max(500).optional(),items:z.array(z.object({item_id:z.uuid(),quantity:z.number().int().min(1).max(99),modifiers:z.array(z.object({modifier_id:z.uuid()})).max(30).default([]),note:z.string().max(500).optional()})).min(1).max(99),quote_token:z.string().max(4000).optional()});
 async function priced(ctx:Context,venue:string,input:z.infer<typeof inputSchema>){
  const menu=await menuData(ctx,venue);const items=menu.categories.flatMap(c=>c.items);const lines=[];
@@ -41,9 +42,9 @@ export function registerOrders(app:FastifyInstance,ctx:Context,limit:(key:string
    const previous=(await tx.rows('orders',{venue_id:guest.venue_id})).filter(o=>o.business_date===date);
    const order=await tx.add('orders',{id:randomUUID(),venue_id:guest.venue_id,session_id:sid,placed_by:guest.participant_id,order_no:previous.reduce((n,o)=>Math.max(n,o.order_no),0)+1,business_date:date,client_order_id:input.client_order_id,request_hash:clientHash,status:'NEW',subtotal_tzs:p.subtotal_tzs,note:input.note??null,created_at:new Date().toISOString()});
    const lines:Row[]=[];for(const l of p.lines){const line=await tx.add('order_items',{id:randomUUID(),order_id:order.id,item_id:l.item_id,participant_id:guest.participant_id,name_snapshot:l.name,unit_price_tzs:l.unit_price_tzs,modifiers_total_tzs:l.modifiers_total_tzs,quantity:l.quantity,line_total_tzs:l.line_total_tzs,note:l.note,station:l.station,status:'NEW'});for(const m of l.modifiers)await tx.add('order_item_modifiers',{id:randomUUID(),order_item_id:line.id,modifier_id:m.id,name_snapshot:m.name_en,price_delta_tzs:m.price_delta_tzs});lines.push({...line,name:l.name});}
-   const response={order:{...order,items:lines},repriced:false};const event=await tx.add('realtime_events',{venue_id:guest.venue_id,session_id:sid,event_type:'order.created',payload:response.order});
+   const response={order:{...order,items:lines},repriced:false};const event=await tx.add('realtime_events',{venue_id:guest.venue_id,session_id:sid,event_type:'order.created',payload:response.order});const billing=await syncBill(tx,guest.venue_id,sid);
    const idem={scope,key,request_hash:bodyHash,response_code:201,response_body:response,expires_at:new Date(Date.now()+86400000).toISOString()};if(saved)await tx.patch('idempotency_keys',{scope,key},idem);else await tx.add('idempotency_keys',idem);
-   await tx.patch('table_sessions',{id:sid},{last_activity_at:new Date().toISOString()});return {body:response,replay:false,seq:event.seq};
+   await tx.patch('table_sessions',{id:sid},{last_activity_at:new Date().toISOString()});return {body:response,replay:false,seq:billing.seq??event.seq};
   });
   if(result.seq&&publish)await publish(guest.venue_id,Number(result.seq)).catch(()=>{});reply.code(result.replay?200:201);return result.body;
  });

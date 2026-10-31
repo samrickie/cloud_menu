@@ -13,6 +13,8 @@ import {registerTables} from './admin-tables.ts';
 import {registerOwner} from './owner.ts';
 import {registerGuestOperations} from './guest-operations.ts';
 import {RealtimeBroker,registerGuestEvents,type ExternalSubscribe} from './realtime.ts';
+import {registerBilling} from './billing.ts';
+import {PricingError} from '../../../packages/shared/src/pricing.ts';
 export interface AppOptions {store:Store;tokenSecret:string;qrSecret:string;logger?:boolean;ownerRegistrationEnabled?:boolean;orderingEnabled?:boolean;uploadDir?:string;guestOrigin?:string;rateLimit?:(key:string,max:number,seconds:number)=>Promise<boolean>;publish?:(venue:string,seq:number)=>Promise<void>;subscribe?:ExternalSubscribe}
 export async function buildApp(options:AppOptions){
  const {store}=options;const tokens=auth(options.tokenSecret);const broker=new RealtimeBroker(store,options.subscribe);const publish=async(venue:string,seq:number)=>{await broker.refresh(venue);await options.publish?.(venue,seq);};
@@ -25,7 +27,7 @@ export async function buildApp(options:AppOptions){
  };
  app.setErrorHandler((error,request,reply)=>{
   const status=error instanceof Error?'statusCode'in error?Number(error.statusCode):500:500;
-  const p=error instanceof Problem?error:error instanceof ZodError||status===400?new Problem(422,'VALIDATION_ERROR','Please check the request.'):status===413?new Problem(413,'PAYLOAD_TOO_LARGE'):new Problem(500,'INTERNAL_ERROR','Please try again.');
+  const p=error instanceof Problem?error:error instanceof PricingError?new Problem(422,error.code,error.message):error instanceof ZodError||status===400?new Problem(422,'VALIDATION_ERROR','Please check the request.'):status===413?new Problem(413,'PAYLOAD_TOO_LARGE'):new Problem(500,'INTERNAL_ERROR','Please try again.');
   if(p.status===500)request.log.error({err:error instanceof Error?{name:error.name,message:error.message}:{name:'UnknownError'},request_id:request.id},'request failed');
   if(p.status===429)reply.header('Retry-After','60');
   reply.code(p.status).type('application/problem+json').send({type:`urn:cloud-menu:error:${p.code}`,title:p.code.replaceAll('_',' '),status:p.status,code:p.code,detail:p.message,request_id:request.id,...p.extra});
@@ -72,6 +74,7 @@ export async function buildApp(options:AppOptions){
  registerOrders(app,context(store,options.tokenSecret),limit,publish,options.orderingEnabled??true);
  registerStaffAuth(app,context(store,options.tokenSecret),limit);
  registerGuestOperations(app,context(store,options.tokenSecret),limit,publish);
+ registerBilling(app,context(store,options.tokenSecret),publish);
  registerGuestEvents(app,context(store,options.tokenSecret),broker,limit);
  registerOwner(app,context(store,options.tokenSecret),limit,options.ownerRegistrationEnabled??true);
  await registerAdminMenu(app,context(store,options.tokenSecret),options.uploadDir??path.resolve('uploads'));
