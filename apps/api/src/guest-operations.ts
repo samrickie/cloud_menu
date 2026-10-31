@@ -11,7 +11,7 @@ export function registerGuestOperations(app:FastifyInstance,ctx:Context,limit:(k
    const [session]=await tx.rows('table_sessions',{id:sid,venue_id:guest.venue_id,status:'ACTIVE'});if(!session)throw new Problem(409,'SESSION_CLOSED');
    const records=(await tx.rows('orders',{session_id:sid,venue_id:guest.venue_id})).sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime());const orders=[];
    for(const o of records.slice(0,200)){const lines=await tx.rows('order_items',{order_id:o.id});orders.push({id:o.id,order_no:o.order_no,status:o.status,note:o.note,created_at:o.created_at,subtotal_tzs:o.subtotal_tzs,items:lines.map(l=>({id:l.id,name:l.name_snapshot,quantity:l.quantity,note:l.note,station:l.station,status:l.status,rejection_reason:l.rejection_reason??null,line_total_tzs:l.line_total_tzs}))});}
-   return {orders,seq:await tx.eventHead(guest.venue_id),truncated:records.length>200};
+   const calls=(await tx.rows('waiter_calls',{venue_id:guest.venue_id,session_id:sid})).sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime());return {orders,waiter_call:calls[0]??null,seq:await tx.eventHead(guest.venue_id),truncated:records.length>200};
   });
  });
  app.post('/v1/sessions/:id/waiter-calls',async(request,reply)=>{

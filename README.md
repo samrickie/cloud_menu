@@ -62,3 +62,5 @@ Repository: [samrickie/cloud_menu](https://github.com/samrickie/cloud_menu). Pub
 Deployment is pending a configured staging environment and verification gates. A green local suite does not imply PO acceptance, peer review, successful hosted CI or production readiness.
 
 Owner accounts are separate from staff PIN login. Set `OWNER_REGISTRATION_ENABLED=true` only for local development while verified email delivery is pending. The loopback demo server exposes `/owner/` and uses disposable memory state; production never uses it. Owner bearer tokens are held in memory and sign-out clears them; a reload requires signing in again.
+
+The guest app now uses Noir & Gold and venue themes, note chips, live order snapshots and waiter calls. See [expanded delivery evidence](docs/LUXURY_DELIVERY_STATUS.md) for the exact tested slice and remaining gaps. Live staff transitions, billing/splits and payments are still being implemented. Fresh local Lighthouse figures apply only to the labelled three-item/no-photo sample fixture.

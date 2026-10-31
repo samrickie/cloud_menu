@@ -2,7 +2,7 @@ import Fastify,{LogController} from 'fastify';
 import { z, ZodError } from 'zod';
 import { randomUUID,randomBytes } from 'node:crypto';
 import { auth,checkQR,hash,Problem,qrScope } from './security.ts';
-import type { Store } from './store.ts';
+import type { Store,Row } from './store.ts';
 import {context} from './context.ts';
 import {registerMenu} from './menu.ts';
 import {registerOrders} from './orders.ts';
@@ -16,6 +16,7 @@ import {RealtimeBroker,registerGuestEvents,type ExternalSubscribe} from './realt
 export interface AppOptions {store:Store;tokenSecret:string;qrSecret:string;logger?:boolean;ownerRegistrationEnabled?:boolean;orderingEnabled?:boolean;uploadDir?:string;guestOrigin?:string;rateLimit?:(key:string,max:number,seconds:number)=>Promise<boolean>;publish?:(venue:string,seq:number)=>Promise<void>;subscribe?:ExternalSubscribe}
 export async function buildApp(options:AppOptions){
  const {store}=options;const tokens=auth(options.tokenSecret);const broker=new RealtimeBroker(store,options.subscribe);const publish=async(venue:string,seq:number)=>{await broker.refresh(venue);await options.publish?.(venue,seq);};
+ async function venueSummary(tx:Store,venue:Row){const [profile]=await tx.rows('venue_profiles',{venue_id:venue.id});const menus=await tx.rows('menus',{venue_id:venue.id,is_active:true});return {id:venue.id,name:venue.name,currency:'TZS',menu_version:Math.max(1,menus.reduce((n,m)=>n+Number(m.version??1),0)),is_sample:!!venue.is_sample,theme:profile?.theme??'noir',brand_colour:profile?.brand_colour??null,primary_text:profile?.primary_text??null};}
  const app=Fastify({logger:options.logger??true,bodyLimit:1048576,logController:new LogController({disableRequestLogging:true})});
  const counters=new Map<string,{count:number;until:number}>();
  const limit=async(key:string,max:number,seconds=60)=>{
@@ -51,13 +52,13 @@ export async function buildApp(options:AppOptions){
    if(existing){
     if(!input.device_proof||hash(input.device_proof)!==existing.device_proof_hash)throw new Problem(403,'DEVICE_PROOF_REQUIRED');
     let issued=Number(existing.token_issued_at);if(issued+21600<=Date.now()/1000){issued=Math.floor(Date.now()/1000);await tx.patch('session_participants',{id:existing.id},{token_issued_at:issued});}
-    return {session,venue:{id:venue.id,name:venue.name,currency:'TZS',menu_version:1},table:{id:table.id,label:table.label},participant:{id:existing.id,display_name:existing.display_name},session_token:await tokens.sign({kind:'guest',session_id:session.id,participant_id:existing.id,venue_id:venue.id},21600,issued),token_expires_at:new Date((issued+21600)*1000).toISOString()};
+    return {session,venue:await venueSummary(tx,venue),table:{id:table.id,label:table.label},participant:{id:existing.id,display_name:existing.display_name},session_token:await tokens.sign({kind:'guest',session_id:session.id,participant_id:existing.id,venue_id:venue.id},21600,issued),token_expires_at:new Date((issued+21600)*1000).toISOString()};
    }
    if(participants.length>=Math.min(20,venue.max_participants))throw new Problem(409,'SESSION_FULL');
    const proof=randomBytes(32).toString('base64url');const issued=Math.floor(Date.now()/1000);
    const participant=await tx.add('session_participants',{id:randomUUID(),session_id:session.id,display_name:`Guest ${participants.length+1}`,device_hash:hash(input.device_id),joined_at:now,device_proof_hash:hash(proof),token_issued_at:issued});
    const token=await tokens.sign({kind:'guest',session_id:session.id,participant_id:participant.id,venue_id:venue.id},21600,issued);
-   reply.code(active.length?200:201);return {session,venue:{id:venue.id,name:venue.name,currency:'TZS',menu_version:1},table:{id:table.id,label:table.label},participant:{id:participant.id,display_name:participant.display_name},session_token:token,token_expires_at:new Date((issued+21600)*1000).toISOString(),device_proof:proof};
+   reply.code(active.length?200:201);return {session,venue:await venueSummary(tx,venue),table:{id:table.id,label:table.label},participant:{id:participant.id,display_name:participant.display_name},session_token:token,token_expires_at:new Date((issued+21600)*1000).toISOString(),device_proof:proof};
   });
  });
  app.patch('/v1/sessions/:id/participant',async request=>{

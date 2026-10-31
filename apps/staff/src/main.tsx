@@ -1,6 +1,6 @@
 import {render} from 'preact';
 import {useState} from 'preact/hooks';
-import '../../guest-pwa/src/style.css';
+import './staff.css';
 import {AdminMenu} from './admin-menu.tsx';
 import {AdminTables} from './admin-tables.tsx';
 function StaffApp(){

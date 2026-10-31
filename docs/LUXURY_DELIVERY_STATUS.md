@@ -27,3 +27,13 @@ The latest owner build is approximately 27.3 KB gzip JS, with fonts separate. Gu
 ## Guest operations API
 
 Six local acceptance/security tests pass for waiter-call concurrent deduplication, acknowledgement permissions/replay, foreign-session denial, strict input, scoped order reads, authenticated SSE replay/live delivery, a connection race and unavailable subscription cleanup. Production has Redis subscriber wiring and bounded durable replay. These tests use the memory adapter and loopback HTTP; they do not certify PostgreSQL/Redis multi-node performance. Guest UI integration, staff state changes, bill updates, operational call retention/resolution and connection/load validation remain pending.
+
+## Guest PWA visual and operations integration
+
+Guest screens now use the recovered Noir & Gold fonts/tokens, bilingual kitchen-note chips, a modal cart, live session order snapshots, waiter reasons/messages and acknowledgement state. The guest bundle excludes owner QR generation and chart code. Browser tests cover menu/customisation snapshots, submitted notes, waiter requests, folded/unfolded widths, 200% text with non-overlapping floating actions, short landscape sheets, denied local storage with ordering, and a closed-session signal requiring explicit re-entry. These client checks do not complete US-206 until staff transitions and bill recalculation are implemented.
+
+SSE requests have low network priority because a long-lived background stream must not compete with critical page content. Forced menu refresh uses a NetworkFirst service-worker rule; normal loads retain cached menu behavior. Private session/order writes are never queued offline. Native dialogs trap focus; sheets respect reduced motion and dynamic viewport height. Denied storage falls back to the current tab with an explicit persistence notice.
+
+Fresh local Lighthouse evidence: initial guest JS 16,653 gzip bytes; three-run p75 Fast 3G LCP 1956.8877 ms and 4G LCP 485.00345 ms, both 4x CPU. All six fresh reports have no warnings. Build files are recorded in `.artifacts/lighthouse-summary.json`. The fixture has three explicitly labelled Sample data items and no photos, served on loopback; these are not field or production p75 results. Earlier runs with the streaming request at high priority timed out and are excluded. The budget harness now rejects incomplete reports and non-finite/missing metrics.
+
+Remaining guest/operations work: staff state changes and availability events, bill/split/payment UI and contracts, reconnect/device/load validation and operational lifecycle/retention jobs. Production source publication, dependency audit/lockfile and deployment remain separate unresolved gates.
