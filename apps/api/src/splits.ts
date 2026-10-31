@@ -6,6 +6,7 @@ import {idParams,type Context} from './context.ts';
 import {Problem} from './security.ts';
 import {syncBill} from './billing.ts';
 import {registerItemized} from './itemized.ts';
+import {registerSplitLocks} from './split-lock.ts';
 import {activeSplit,remainingBillItems,splitView} from './split-state.ts';
 export function registerSplits(app:FastifyInstance,ctx:Context,limit:(key:string,max:number)=>Promise<void>,publish:(venue:string,seq:number)=>Promise<void>){
  app.post('/v1/sessions/:id/splits',async(request,reply)=>{
@@ -23,4 +24,5 @@ export function registerSplits(app:FastifyInstance,ctx:Context,limit:(key:string
   });await publish(guest.venue_id,result.seq).catch(()=>{});reply.code(201);return {split:result.split};
  });
  registerItemized(app,ctx,limit,publish);
+ registerSplitLocks(app,ctx,limit,publish);
 }

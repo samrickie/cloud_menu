@@ -49,3 +49,7 @@ Local tests cover the exact 90,000/3 and 100,000/3 acceptance examples, all paye
 ## US-303 itemized-split API foundation
 
 Seven local tests cover proportional extras, partial/unassigned balances, concurrent double-claim rejection, the documented coordinator payload and retry, ownership-stealing denial, foreign item/split denial, atomic slot claims, cross-session/venue isolation, and exact largest-remainder money. Paid portions are excluded using scoped SQL aggregates. PostgreSQL execution, split-lock integration and guest bill/split UI remain outstanding at this slice.
+
+## US-305 split-lock API foundation
+
+Eight local tests cover ten-minute locking, frozen equal base-item allocations, pending new-order balances, concurrent/superseded confirmations, stale bill and split revisions, itemized leftovers, initiated-payment expiry/unlock guards, cross-session/venue denial, worker sweep replay and safe-integer apportionment. These are memory-adapter tests; PostgreSQL row locks, migrations and the scheduled pg-boss process have not run against real infrastructure. Guest confirmation/payment UI, staff-authorized unlock, deployed worker behavior, paid-ledger reconciliation and PO acceptance remain DoD gaps. This slice must not be described as a complete production payment flow.

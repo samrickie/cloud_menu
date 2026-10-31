@@ -1,0 +1,14 @@
+import pg from 'pg';
+import Redis from 'ioredis';
+import {PgBoss} from 'pg-boss';
+import {z} from 'zod';
+import {PostgresStore} from './store.ts';
+import {sweepExpiredSplits} from './split-expiry.ts';
+const env=z.object({DATABASE_URL:z.string().min(1),REDIS_URL:z.string().min(1)}).parse(process.env);
+const pool=new pg.Pool({connectionString:env.DATABASE_URL,max:3}),store=new PostgresStore(pool),redis=new Redis(env.REDIS_URL,{maxRetriesPerRequest:1});
+const boss=new PgBoss({connectionString:env.DATABASE_URL});boss.on('error',()=>console.error('Background job error; inspect protected infrastructure logs.'));
+await pool.query('SELECT 1');await redis.ping();await boss.start();
+const name='cloud-menu-split-expiry';await boss.createQueue(name,{retryLimit:3,retryDelay:5});
+await boss.work(name,async()=>{await sweepExpiredSplits(store,async(venue,seq)=>{await redis.publish('venue:'+venue,String(seq));});});
+await boss.schedule(name,'* * * * *',{}, {tz:'Africa/Dar_es_Salaam'});
+let stopping=false;for(const signal of ['SIGTERM','SIGINT'])process.on(signal,()=>{if(stopping)return;stopping=true;void boss.stop({graceful:true}).then(async()=>{await pool.end();await redis.quit();}).catch(()=>{process.exitCode=1;});});
