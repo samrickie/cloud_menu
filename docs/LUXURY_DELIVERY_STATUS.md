@@ -4,7 +4,7 @@ This is incremental work, not a production release. The original Sprint 1 report
 
 ## Owner API foundation
 
-Automated acceptance coverage includes registration and bcrypt hashing, trial venue/category creation, own-venue login/selection, foreign-owner denial, strict profile validation, measured contrast rejection, draft privacy, incomplete launch rejection, configured publication, public credential exclusion, and immediate disabled-account denial across owner/menu/table routes. Ten owner API tests cover these boundaries and default sample inventory/station routing; tests pass locally against the test memory adapter; PostgreSQL execution is still unverified in this environment.
+Automated acceptance coverage includes registration and bcrypt hashing, trial venue/category creation, own-venue login/selection, foreign-owner denial, strict profile validation, measured contrast rejection, draft privacy, incomplete launch rejection, configured publication, public credential exclusion, and immediate disabled-account denial across owner/menu/table routes. Eleven owner API tests cover these boundaries and default sample inventory/station routing; tests pass locally against the test memory adapter; PostgreSQL execution is still unverified in this environment.
 
 Shared themes have four passing contrast tests. The saved reference HTML is decoded without executing embedded JavaScript and its licensed Latin fonts are self-hosted.
 
@@ -23,3 +23,7 @@ The isolated `apps/owner` app includes account and trial venue creation, seven s
 Browser acceptance tests cover saving settings and hours, adding a real menu item, incomplete publication rejection, table ranges/single/CSV, PNG/PDF downloads, rotation, print-all preparation, Swahili, 280/360/720/884/1440 px layouts, enlarged text and reduced motion. Setup and table screens have 360/1440 regression snapshots. Snapshot QR images and random venue slugs are masked; these snapshots do not prove exact canvas equivalence or phone scanner readability. Baselines were captured on Windows Edge; Linux CI comparisons still require execution/review.
 
 The latest owner build is approximately 27.3 KB gzip JS, with fonts separate. Guest JS has not gained any owner/chart/QR modules. Do not reuse previous Lighthouse figures as measurements of this expanded platform.
+
+## Guest operations API
+
+Six local acceptance/security tests pass for waiter-call concurrent deduplication, acknowledgement permissions/replay, foreign-session denial, strict input, scoped order reads, authenticated SSE replay/live delivery, a connection race and unavailable subscription cleanup. Production has Redis subscriber wiring and bounded durable replay. These tests use the memory adapter and loopback HTTP; they do not certify PostgreSQL/Redis multi-node performance. Guest UI integration, staff state changes, bill updates, operational call retention/resolution and connection/load validation remain pending.

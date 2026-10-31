@@ -64,3 +64,15 @@ Menu writes bump version for ETag revalidation within the specified 60-second fr
 Reports, bill/split/payment endpoints and full KDS updates are not implemented. The manager-report guard returns 501 for managers and 403 for kitchen users, proving the role boundary without implementing future reporting stories.
 
 Expanded menu creation permits omitted station, using the category default station (KITCHEN for existing categories). Editing an onboarding sample item adopts it as real inventory; newly created normal items are real by default. A range/single table request adopts a matching flagged default sample table with the explicitly assigned metadata. Other existing tables retain metadata on duplicate generation.
+
+## Guest operations and live events
+
+GET `/v1/sessions/:id/orders` requires a current guest token bound to that session. Returns `{orders,seq,truncated}` with at most 200 newest orders, item statuses, notes and snapshot amounts; internal hashes and device identities are omitted. A transaction reads the consistent venue event head. The bill endpoint, when implemented, remains the authority for the complete monetary balance.
+
+POST `/v1/sessions/:id/waiter-calls` accepts strict `{reason:HELP|BILL|CLEAN_TABLE|WATER,message?:string}` (500 characters). Venue/table/participant come from the session. Requests within 60 seconds reuse the prior table call: 200 `{call,repeated:true}`. New calls return 201 and write waiter.called atomically. Concurrent taps across participants create one alert.
+
+GET `/v1/staff/waiter-calls` lists up to 200 unresolved venue calls with table labels. POST `/v1/staff/waiter-calls/:id/acknowledge` requires WAITER/MANAGER/OWNER; sets ACKNOWLEDGED once, records actor/time and emits waiter.acknowledged. Same-waiter replay returns 200; another waiter gets 409 CALL_ALREADY_ACKNOWLEDGED. Foreign IDs return 404.
+
+GET `/v1/sessions/:id/events` follows the source SSE contract. Authorization is a bearer header, never a URL credential. Last-Event-ID is a nonnegative safe integer. Deliver only the authenticated session's events and venue-wide menu.item_availability. An ahead-of-head cursor returns 409 EVENT_CURSOR_INVALID. Subscription failure returns 503 REALTIME_UNAVAILABLE before opening a stream. Heartbeats every 20 seconds revalidate the session; token expiry closes the stream. Clients resnapshot on resync.required and reauthenticate on auth.expired.
+
+Subscribe before replay and queue concurrent live events. Bounded replay batches, pending queues and output buffers disconnect slow clients for replay. Limits: three streams/participant, 5000/API instance. A broker reads the durable outbox once per active venue, using Redis notifications with a five-second venue-level recovery poll. These are implementation limits, not measured capacity/latency. Multi-node Redis/PostgreSQL and 9000-connection load checks remain pending.

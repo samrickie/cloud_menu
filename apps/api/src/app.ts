@@ -11,9 +11,11 @@ import {registerAdminMenu} from './admin-menu.ts';
 import path from 'node:path';
 import {registerTables} from './admin-tables.ts';
 import {registerOwner} from './owner.ts';
-export interface AppOptions {store:Store;tokenSecret:string;qrSecret:string;logger?:boolean;ownerRegistrationEnabled?:boolean;orderingEnabled?:boolean;uploadDir?:string;guestOrigin?:string;rateLimit?:(key:string,max:number,seconds:number)=>Promise<boolean>;publish?:(venue:string,seq:number)=>Promise<void>}
+import {registerGuestOperations} from './guest-operations.ts';
+import {RealtimeBroker,registerGuestEvents,type ExternalSubscribe} from './realtime.ts';
+export interface AppOptions {store:Store;tokenSecret:string;qrSecret:string;logger?:boolean;ownerRegistrationEnabled?:boolean;orderingEnabled?:boolean;uploadDir?:string;guestOrigin?:string;rateLimit?:(key:string,max:number,seconds:number)=>Promise<boolean>;publish?:(venue:string,seq:number)=>Promise<void>;subscribe?:ExternalSubscribe}
 export async function buildApp(options:AppOptions){
- const {store}=options;const tokens=auth(options.tokenSecret);
+ const {store}=options;const tokens=auth(options.tokenSecret);const broker=new RealtimeBroker(store,options.subscribe);const publish=async(venue:string,seq:number)=>{await broker.refresh(venue);await options.publish?.(venue,seq);};
  const app=Fastify({logger:options.logger??true,bodyLimit:1048576,logController:new LogController({disableRequestLogging:true})});
  const counters=new Map<string,{count:number;until:number}>();
  const limit=async(key:string,max:number,seconds=60)=>{
@@ -66,8 +68,10 @@ export async function buildApp(options:AppOptions){
   await store.patch('session_participants',{id:token.participant_id,session_id:id},{display_name});return {participant:{id:token.participant_id,display_name}};
  });
  registerMenu(app,context(store,options.tokenSecret));
- registerOrders(app,context(store,options.tokenSecret),limit,options.publish,options.orderingEnabled??true);
+ registerOrders(app,context(store,options.tokenSecret),limit,publish,options.orderingEnabled??true);
  registerStaffAuth(app,context(store,options.tokenSecret),limit);
+ registerGuestOperations(app,context(store,options.tokenSecret),limit,publish);
+ registerGuestEvents(app,context(store,options.tokenSecret),broker,limit);
  registerOwner(app,context(store,options.tokenSecret),limit,options.ownerRegistrationEnabled??true);
  await registerAdminMenu(app,context(store,options.tokenSecret),options.uploadDir??path.resolve('uploads'));
  registerTables(app,context(store,options.tokenSecret),options.qrSecret,options.guestOrigin??'http://localhost:5173',limit);

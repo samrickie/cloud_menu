@@ -1,6 +1,8 @@
 import type { Store, Table, Row } from '../apps/api/src/store.ts';
 // Test adapter only. The production server never selects this adapter.
 export class MemoryStore implements Store {
+ async events(venue:string,after:number,limit:number,session?:string){return structuredClone((this.data.realtime_events??[]).filter(e=>e.venue_id===venue&&e.seq>after&&(!session||e.session_id===session||(e.session_id===null&&e.event_type==='menu.item_availability'))).sort((a,b)=>a.seq-b.seq).slice(0,limit));}
+ async eventHead(venue:string){return (this.data.realtime_events??[]).filter(e=>e.venue_id===venue).reduce((n,e)=>Math.max(n,e.seq),0);}
  data: Partial<Record<Table,Row[]>> = {}; private tail = Promise.resolve();
  async rows(table:Table,where:Row) { return structuredClone((this.data[table]??[]).filter(r=>Object.entries(where).every(([k,v])=>r[k]===v))); }
  async add(table:Table,row:Row) { const value={...row};if(table==='realtime_events')value.seq=(this.data.realtime_events?.length??0)+1; (this.data[table]??=[]).push(value); return structuredClone(value); }
