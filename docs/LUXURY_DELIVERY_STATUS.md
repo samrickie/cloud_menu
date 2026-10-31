@@ -53,3 +53,5 @@ Seven local tests cover proportional extras, partial/unassigned balances, concur
 ## US-305 split-lock API foundation
 
 Eight local tests cover ten-minute locking, frozen equal base-item allocations, pending new-order balances, concurrent/superseded confirmations, stale bill and split revisions, itemized leftovers, initiated-payment expiry/unlock guards, cross-session/venue denial, worker sweep replay and safe-integer apportionment. These are memory-adapter tests; PostgreSQL row locks, migrations and the scheduled pg-boss process have not run against real infrastructure. Guest confirmation/payment UI, staff-authorized unlock, deployed worker behavior, paid-ledger reconciliation and PO acceptance remain DoD gaps. This slice must not be described as a complete production payment flow.
+
+Infrastructure regression checks cover repeated readiness probes reusing existing dependency clients, a sanitized 503 on dependency failure, and preservation of millisecond precision for PostgreSQL Date lock deadlines. The production readiness handler no longer creates Redis subscribers on each probe.

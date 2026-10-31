@@ -15,7 +15,8 @@ export async function paymentInFlight(tx:Store,split:Row){
 }
 export async function splitEvent(tx:Store,split:Row){const view=await splitView(tx,split),event=await tx.add('realtime_events',{venue_id:split.venue_id,session_id:split.session_id,event_type:'split.updated',payload:{split_id:split.id,...view}});return {split:view,seq:Number(event.seq)};}
 export async function expireSplit(tx:Store,split:Row):Promise<Row>{
- if(split.status!=='LOCKED'||!split.lock_expires_at||Date.parse(split.lock_expires_at)>Date.now())return split;
+ if(split.status!=='LOCKED'||!split.lock_expires_at)return split;
+ const deadline=new Date(split.lock_expires_at).getTime();if(!Number.isFinite(deadline))throw new Problem(409,'LEDGER_REVIEW_REQUIRED');if(deadline>Date.now())return split;
  if(await paymentInFlight(tx,split))return split;
  const change={status:'OPEN',locked_at:null,lock_expires_at:null,revision:(split.revision??1)+1};await tx.patch('bill_splits',{id:split.id,venue_id:split.venue_id,session_id:split.session_id},change);await tx.patch('bills',{id:split.bill_id,venue_id:split.venue_id,session_id:split.session_id,status:'LOCKED'},{status:'OPEN'});const next={...split,...change};await splitEvent(tx,next);return next;
 }

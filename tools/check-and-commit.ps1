@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$Story,[Parameter(Mandatory=$true)][string]$Description,[switch]$Amend)
+param([Parameter(Mandatory=$true)][string]$Story,[Parameter(Mandatory=$true)][string]$Description,[ValidateSet('feat','fix','chore')][string]$CommitType='feat',[switch]$Amend)
 $ErrorActionPreference='Stop'
 $runtimeNode=if ($env:CLOUD_MENU_NODE) { $env:CLOUD_MENU_NODE } else { (Get-Command node -ErrorAction Stop).Source }
 & $runtimeNode node_modules/typescript/bin/tsc --noEmit
@@ -27,4 +27,4 @@ if ($Story -eq 'US-701') {
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 git -c core.autocrlf=false add .
-if ($Amend) { git commit --amend --no-edit } else { git commit -m "feat($Story): $Description" }
+if ($Amend) { git commit --amend --no-edit } else { git commit -m "${CommitType}($Story): $Description" }
