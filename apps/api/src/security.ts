@@ -4,8 +4,9 @@ export class Problem extends Error {
  constructor(public status:number,public code:string,message=code,public extra:Record<string,unknown>={}){super(message);}
 }
 export const hash=(value:string)=>createHash('sha256').update(value).digest('hex');
-export function signQR(code:string,version:number,secret:string){return `${code}.${createHmac('sha256',secret).update(`${code}:${version}`).digest('base64url')}`;}
-export function checkQR(token:string,code:string,version:number,secret:string){const a=Buffer.from(token),b=Buffer.from(signQR(code,version,secret));return a.length===b.length&&timingSafeEqual(a,b);}
+export function signQR(code:string,version:number,secret:string,scope?:string){return `${code}.${createHmac('sha256',secret).update(scope?JSON.stringify(['v2',code,version,scope]):`${code}:${version}`).digest('base64url')}`;}
+export function checkQR(token:string,code:string,version:number,secret:string,scope?:string){const a=Buffer.from(token),b=Buffer.from(signQR(code,version,secret,scope));return a.length===b.length&&timingSafeEqual(a,b);}
+export const qrScope=(table:Record<string,any>)=>table.qr_format===2?JSON.stringify([table.venue_id,table.label]):undefined;
 export function auth(secret:string){
  const key=new TextEncoder().encode(secret);
  return {

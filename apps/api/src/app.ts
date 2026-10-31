@@ -1,7 +1,7 @@
 import Fastify,{LogController} from 'fastify';
 import { z, ZodError } from 'zod';
 import { randomUUID,randomBytes } from 'node:crypto';
-import { auth,checkQR,hash,Problem } from './security.ts';
+import { auth,checkQR,hash,Problem,qrScope } from './security.ts';
 import type { Store } from './store.ts';
 import {context} from './context.ts';
 import {registerMenu} from './menu.ts';
@@ -36,9 +36,9 @@ export async function buildApp(options:AppOptions){
   const input=z.object({qr:z.string().max(200),device_id:z.uuid(),device_proof:z.string().max(100).optional(),locale:z.enum(['en','sw']).default('en')}).parse(request.body);
   const [table]=await store.rows('dining_tables',{qr_code:input.qr.split('.')[0],is_active:true});
   if(!table)throw new Problem(404,'QR_NOT_FOUND');
-  if(!checkQR(input.qr,table.qr_code,table.qr_key_version,options.qrSecret))throw new Problem(422,'QR_SIGNATURE_INVALID');
+  if(!checkQR(input.qr,table.qr_code,table.qr_key_version,options.qrSecret,qrScope(table)))throw new Problem(422,'QR_SIGNATURE_INVALID');
   return store.tx(`venue:${table.venue_id}`,async tx=>{
-   const [current]=await tx.rows('dining_tables',{id:table.id,is_active:true});if(!current||!checkQR(input.qr,current.qr_code,current.qr_key_version,options.qrSecret))throw new Problem(422,'QR_SIGNATURE_INVALID');
+   const [current]=await tx.rows('dining_tables',{id:table.id,venue_id:table.venue_id,is_active:true});if(!current||!checkQR(input.qr,current.qr_code,current.qr_key_version,options.qrSecret,qrScope(current)))throw new Problem(422,'QR_SIGNATURE_INVALID');
    const [venue]=await tx.rows('venues',{id:table.venue_id});
    if(!['ACTIVE','TRIAL'].includes(venue.status))throw new Problem(403,'VENUE_SUSPENDED');
    const active=await tx.rows('table_sessions',{table_id:table.id,status:'ACTIVE'});
@@ -70,6 +70,6 @@ export async function buildApp(options:AppOptions){
  registerStaffAuth(app,context(store,options.tokenSecret),limit);
  registerOwner(app,context(store,options.tokenSecret),limit,options.ownerRegistrationEnabled??true);
  await registerAdminMenu(app,context(store,options.tokenSecret),options.uploadDir??path.resolve('uploads'));
- registerTables(app,context(store,options.tokenSecret),options.qrSecret,options.guestOrigin??'http://localhost:5173');
+ registerTables(app,context(store,options.tokenSecret),options.qrSecret,options.guestOrigin??'http://localhost:5173',limit);
  return app;
 }
