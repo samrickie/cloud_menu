@@ -42,6 +42,7 @@ jobs:
       - run: pnpm budget
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
+      - run: pnpm exec playwright test --config playwright.pages.config.ts
       - name: Lighthouse CI Fast 3G budget
         run: |
           pnpm exec tsx tools/demo-server.ts > /tmp/cloud-menu-demo.log 2>&1 &

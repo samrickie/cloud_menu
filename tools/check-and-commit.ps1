@@ -21,6 +21,10 @@ if (Test-Path 'tests/browser/guest.spec.ts') {
   $env:LOCAL_EDGE='1'
   & $runtimeNode node_modules/@playwright/test/cli.js test
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+  if (Test-Path 'playwright.pages.config.ts') {
+    & $runtimeNode node_modules/@playwright/test/cli.js test --config playwright.pages.config.ts
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+  }
 }
 if ($Story -eq 'US-701') {
   & $runtimeNode tools/write-evidence.mjs

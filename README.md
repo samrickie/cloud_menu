@@ -1,5 +1,7 @@
 # Cloud-Menu
 
+GitHub-only hosting: the root `index.html` is a clearly labelled static design preview with six supplied reference boards, not the live ordering application. See [GitHub Pages setup and limits](docs/GITHUB_PAGES.md).
+
 QR-based guest ordering for lounges and casual dining in Dar es Salaam. This branch extends the Sprint 1 ordering and administration foundation with the luxury venue platform in incremental slices. See [delivery status](docs/LUXURY_DELIVERY_STATUS.md) and [visual reference](docs/DESIGN_REFERENCE.md). All supplied examples and generated fixtures are explicitly **DEMO** data. Split bills, real mobile-money integration, full KDS state management and waiter dashboards belong to later sprints.
 
 ## Setup
