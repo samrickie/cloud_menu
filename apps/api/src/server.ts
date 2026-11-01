@@ -5,6 +5,7 @@ import {buildApp} from './app.ts';
 import {PostgresStore} from './store.ts';
 import path from 'node:path';
 import {registerReadiness} from './readiness.ts';
+import {registerFrontends} from './frontends.ts';
 const env=z.object({DATABASE_URL:z.string().min(1),REDIS_URL:z.string().min(1),TOKEN_SECRET:z.string().min(64),QR_SECRET:z.string().min(64),GUEST_ORIGIN:z.url(),PORT:z.coerce.number().default(3000),UPLOAD_DIR:z.string().default('./uploads'),OWNER_REGISTRATION_ENABLED:z.enum(['true','false']).default('false'),ORDERING_ENABLED:z.enum(['true','false']).default('false')}).parse(process.env);
 const pool=new pg.Pool({connectionString:env.DATABASE_URL,max:10});const redis=new Redis(env.REDIS_URL,{maxRetriesPerRequest:1});
 await pool.query('SELECT 1');await redis.ping();
@@ -14,5 +15,6 @@ const app=await buildApp({store:new PostgresStore(pool),ownerRegistrationEnabled
  const n=await redis.eval("local n=redis.call('INCR',KEYS[1]); if n==1 then redis.call('EXPIRE',KEYS[1],ARGV[1]); end; return n",1,'cloud-menu:rate:'+key,seconds);return Number(n)<=max;
 },publish:async(venue,seq)=>{await redis.publish('venue:'+venue,String(seq));}});
 registerReadiness(app,pool,redis);
+if(process.env.SERVE_FRONTENDS==='true')await registerFrontends(app);
 await app.listen({host:'0.0.0.0',port:env.PORT});
 for(const signal of ['SIGTERM','SIGINT'])process.on(signal,()=>void app.close().then(async()=>{await pool.end();await subscriber.quit();await redis.quit();process.exit(0);}));

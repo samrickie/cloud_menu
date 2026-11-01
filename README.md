@@ -2,6 +2,8 @@
 
 GitHub-only hosting: the root `index.html` is a clearly labelled static design preview with six supplied reference boards, not the live ordering application. See [GitHub Pages setup and limits](docs/GITHUB_PAGES.md).
 
+To run the actual connected application locally, build all apps with `pnpm build`, then use `pnpm exec tsx tools/demo-server.ts` for the labelled, disposable loopback sandbox. It prints a signed guest link; owner setup is at http://127.0.0.1:4173/owner/ and staff sign-in at http://127.0.0.1:4173/staff/. Owner-created menu items and tables connect to that same guest app. Sandbox data is lost on restart and no real payments are configured. The production start uses PostgreSQL/Redis; `SERVE_FRONTENDS=true` serves the built apps from the API origin. Configure `GUEST_ORIGIN` to that actual HTTPS origin before printing QR stickers.
+
 QR-based guest ordering for lounges and casual dining in Dar es Salaam. This branch extends the Sprint 1 ordering and administration foundation with the luxury venue platform in incremental slices. See [delivery status](docs/LUXURY_DELIVERY_STATUS.md) and [visual reference](docs/DESIGN_REFERENCE.md). All supplied examples and generated fixtures are explicitly **DEMO** data. Split bills, real mobile-money integration, full KDS state management and waiter dashboards belong to later sprints.
 
 ## Setup
