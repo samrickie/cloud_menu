@@ -1,5 +1,9 @@
 # Additive Sprint 1 contracts
 
+## Guest billing additions
+
+Bill items include `available_tzs`, the immutable line total less paid item allocations. `pending_balance_tzs` is the unpaid amount outside a locked split, or zero if none is locked. `split.requires_recalculation` marks stale OPEN drafts. Guest confirmation sends `split_revision` alongside `bill_version` to reject allocation changes made after review.
+
 ## Expanded owner contracts
 
 New owner routes use the same problem envelope and no-store response policy. Account and staff bearer tokens have distinct kinds and one-hour expiry. Owner routes accept strict objects; venue IDs are taken from authenticated context, never client profile fields.

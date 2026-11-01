@@ -55,3 +55,11 @@ Seven local tests cover proportional extras, partial/unassigned balances, concur
 Eight local tests cover ten-minute locking, frozen equal base-item allocations, pending new-order balances, concurrent/superseded confirmations, stale bill and split revisions, itemized leftovers, initiated-payment expiry/unlock guards, cross-session/venue denial, worker sweep replay and safe-integer apportionment. These are memory-adapter tests; PostgreSQL row locks, migrations and the scheduled pg-boss process have not run against real infrastructure. Guest confirmation/payment UI, staff-authorized unlock, deployed worker behavior, paid-ledger reconciliation and PO acceptance remain DoD gaps. This slice must not be described as a complete production payment flow.
 
 Infrastructure regression checks cover repeated readiness probes reusing existing dependency clients, a sanitized 503 on dependency failure, and preservation of millisecond precision for PostgreSQL Date lock deadlines. The production readiness handler no longer creates Redis subscribers on each probe.
+
+## Functional guest bill and split interface
+
+Guests can open their actual session bill, inspect quantities/modifiers/notes and totals, create equal/itemized splits, claim shares, assign item portions, confirm the split, see pending new orders, and explicitly unlock before recalculation. Private bill responses are not cached. Writes are disabled offline and payment configuration is truthfully unavailable.
+
+Five browser scenarios use real loopback API calls and two browser guests, with no mocked bill responses. They cover exact remainders, invalid counts, an order racing confirmation, offline controls, cross-guest allocations/ownership, pending balance, lock/unlock, EN/SW, fold widths, enlarged text and bill snapshots at 360/1440. These memory-adapter tests do not verify PostgreSQL or production readiness. The Pages site remains a separate reference showcase.
+
+Fresh measurements for this UI build: initial guest JS 18,923 gzip bytes. All six local Lighthouse reports completed without warnings; three-run nearest-rank p75 LCP is 2105.11755 ms on Fast 3G and 450.98965 ms on 4G, both 4x CPU. The dynamic bill module is about 3.29 KB gzip and is not an initial menu dependency. These figures use the labelled loopback three-item/no-photo fixture and are not field measurements.

@@ -3,11 +3,11 @@ import {useEffect,useState} from 'preact/hooks';
 export interface GuestOrder {id:string;order_no:number;status:string;created_at:string;items:{id:string;name:string;quantity:number;note?:string;status:string;rejection_reason?:string;line_total_tzs:number}[]}
 export interface WaiterCall {id:string;reason:string;status:string;created_at:string;message?:string}
 export function useGuestLive(entry:any,onExpired:()=>void){
- const [orders,setOrders]=useState<GuestOrder[]>([]),[call,setCall]=useState<WaiterCall>(),[connected,setConnected]=useState(false),[menuSeq,setMenuSeq]=useState(0);
+ const [orders,setOrders]=useState<GuestOrder[]>([]),[call,setCall]=useState<WaiterCall>(),[connected,setConnected]=useState(false),[menuSeq,setMenuSeq]=useState(0),[billSeq,setBillSeq]=useState(0);
  useEffect(()=>{
   const abort=new AbortController();let connection:AbortController|undefined,lastSeq=0,failures=0,poll:ReturnType<typeof setInterval>|undefined,loading:Promise<void>|undefined,again=false;
   const base=`/v1/sessions/${entry.session.id}`,headers={authorization:`Bearer ${entry.session_token}`};
-  async function snapshot(){if(loading){again=true;return loading;}loading=(async()=>{do{again=false;const r=await fetch(base+'/orders',{headers,signal:abort.signal,credentials:'omit'});if(!r.ok){if([401,409].includes(r.status))onExpired();throw Error('snapshot unavailable');}const data=await r.json();if(abort.signal.aborted)return;setOrders(data.orders);setCall(current=>mergeCall(current,data.waiter_call??undefined));lastSeq=Math.max(lastSeq,data.seq);setMenuSeq(lastSeq);}while(again&&!abort.signal.aborted);})();try{await loading;}finally{loading=undefined;}}
+  async function snapshot(){if(loading){again=true;return loading;}loading=(async()=>{do{again=false;const r=await fetch(base+'/orders',{headers,signal:abort.signal,credentials:'omit'});if(!r.ok){if([401,409].includes(r.status))onExpired();throw Error('snapshot unavailable');}const data=await r.json();if(abort.signal.aborted)return;setOrders(data.orders);setCall(current=>mergeCall(current,data.waiter_call??undefined));lastSeq=Math.max(lastSeq,data.seq);setMenuSeq(lastSeq);setBillSeq(lastSeq);}while(again&&!abort.signal.aborted);})();try{await loading;}finally{loading=undefined;}}
   const wait=(ms:number)=>new Promise<void>(resolve=>{const done=()=>{clearTimeout(timer);abort.signal.removeEventListener('abort',done);resolve();};const timer=setTimeout(done,ms);abort.signal.addEventListener('abort',done,{once:true});});
   async function stream(){
    try{await snapshot();}catch{/* SSE replay can still recover; polling remains available. */}
@@ -22,7 +22,7 @@ export function useGuestLive(entry:any,onExpired:()=>void){
       while((end=buffer.indexOf('\n\n'))>=0){const frame=buffer.slice(0,end);buffer=buffer.slice(end+2);let type='',id=0;const lines=[];for(const line of frame.split('\n')){if(line.startsWith('event:'))type=line.slice(6).trim();if(line.startsWith('id:'))id=Number(line.slice(3).trim());if(line.startsWith('data:'))lines.push(line.slice(5).trimStart());}
        if(!type)continue;if(type==='auth.expired'||type==='session.closed'){onExpired();return;}if(type==='resync.required'){await snapshot();continue;}if(!Number.isSafeInteger(id)||id<=lastSeq)continue;lastSeq=id;
        if(type==='menu.item_availability')setMenuSeq(id);
-       if(type.startsWith('order.')||type.startsWith('waiter.')||type==='bill.updated')await snapshot();
+       if(type.startsWith('order.')||type.startsWith('waiter.')||type==='bill.updated'||type==='split.updated')await snapshot();
       }
      }
      throw Error('stream closed');
@@ -33,5 +33,5 @@ export function useGuestLive(entry:any,onExpired:()=>void){
   }
   void stream();return()=>{abort.abort();connection?.abort();if(poll)clearInterval(poll);};
  },[entry.session.id,entry.session_token]);
- return {orders,call,connected,menuSeq,setCall:(next:WaiterCall)=>setCall(current=>mergeCall(current,next))};
+ return {orders,call,connected,menuSeq,billSeq,setCall:(next:WaiterCall)=>setCall(current=>mergeCall(current,next))};
 }

@@ -5,7 +5,7 @@ import {tzs} from '../../../packages/shared/src/pricing.ts';
 import {idParams,type Context} from './context.ts';
 import type {Store,Row} from './store.ts';
 import {hash,Problem} from './security.ts';
-import {activeSplit,splitView} from './split-state.ts';
+import {activeSplit,splitView,remainingBillItems} from './split-state.ts';
 
 // Called under the same per-venue transaction as orders/rejections. Menu edits
 // never reprice historical lines; their immutable order snapshots are the input.
@@ -33,7 +33,7 @@ export async function syncBill(tx:Store,venueId:string,sessionId:string){
 export function registerBilling(app:FastifyInstance,ctx:Context,publish:(venue:string,seq:number)=>Promise<void>){
  app.get('/v1/sessions/:id/bill',async request=>{
   const sid=idParams(request.params),guest=await ctx.guest(request,sid);
-  const result=await ctx.store.tx(`venue:${guest.venue_id}`,async tx=>{const [session]=await tx.rows('table_sessions',{id:sid,venue_id:guest.venue_id,status:'ACTIVE'});if(!session)throw new Problem(409,'SESSION_CLOSED');const snapshot=await syncBill(tx,guest.venue_id,sid),current=await activeSplit(tx,guest.venue_id,sid,snapshot.bill.id);const [bill]=await tx.rows('bills',{id:snapshot.bill.id,venue_id:guest.venue_id,session_id:sid});return {...snapshot,bill,seq:await tx.eventHead(guest.venue_id),split:current?await splitView(tx,current):null};});
+  const result=await ctx.store.tx(`venue:${guest.venue_id}`,async tx=>{const [session]=await tx.rows('table_sessions',{id:sid,venue_id:guest.venue_id,status:'ACTIVE'});if(!session)throw new Problem(409,'SESSION_CLOSED');const snapshot=await syncBill(tx,guest.venue_id,sid),current=await activeSplit(tx,guest.venue_id,sid,snapshot.bill.id);const [bill]=await tx.rows('bills',{id:snapshot.bill.id,venue_id:guest.venue_id,session_id:sid});const remaining=await remainingBillItems(tx,bill,snapshot.items);return {...snapshot,items:remaining.items,bill,seq:await tx.eventHead(guest.venue_id),split:current?await splitView(tx,current):null};});
   if(result.seq)await publish(guest.venue_id,result.seq).catch(()=>{});
   const {bill,items}=result;const reserved=result.split?.status==='LOCKED'?result.split.shares.filter(s=>s.status!=='PAID'&&s.status!=='VOID').reduce((n,s)=>n+s.amount_tzs,0):0;return {bill:{id:bill.id,session_id:sid,currency:'TZS',version:bill.version,status:bill.status,subtotal_tzs:bill.subtotal_tzs,service_charge_tzs:bill.service_charge_tzs,tax_tzs:bill.tax_tzs,total_tzs:bill.total_tzs,paid_tzs:bill.paid_tzs,balance_tzs:tzs(bill.total_tzs-bill.paid_tzs),pending_balance_tzs:result.split?.status==='LOCKED'?tzs(bill.total_tzs-bill.paid_tzs-reserved):0,service_charge_bp:bill.service_charge_bp,vat_rate_bp:bill.vat_rate_bp,prices_include_vat:bill.prices_include_vat,items,split:result.split?{...result.split,requires_recalculation:result.split.status==='OPEN'&&result.split.bill_version!==bill.version}:null}};
  });

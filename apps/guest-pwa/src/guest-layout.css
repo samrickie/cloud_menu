@@ -4,3 +4,5 @@
 .guest-main dialog{margin:auto}@media(max-width:720px){.guest-main dialog{margin:auto auto max(12px,env(safe-area-inset-bottom))}}
 
 .guest-main{padding-bottom:calc(var(--guest-cart-height,52px) + max(16px,env(safe-area-inset-bottom)) + 110px)}.call-waiter{bottom:calc(var(--guest-cart-height,52px) + max(16px,env(safe-area-inset-bottom)) + 12px)}.waiter-notice{bottom:calc(var(--guest-cart-height,52px) + max(16px,env(safe-area-inset-bottom)) + 72px)}
+
+.bill-open{display:inline-flex;align-items:center;justify-content:center;min-height:44px;margin:24px 0 0;padding:10px 20px;border:1px solid var(--cm-primary);border-radius:14px;background:var(--cm-surface);color:var(--cm-accent-text);font:700 .867rem var(--cm-font-ui)}
