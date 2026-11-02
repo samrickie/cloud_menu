@@ -67,3 +67,7 @@ Fresh measurements for this UI build: initial guest JS 18,923 gzip bytes. All si
 ## Connected application serving
 
 The API has opt-in production static serving for guest, owner and staff builds on one origin, with separate paths and asset roots. A filesystem integration test verifies root isolation, API/missing-asset 404 problems, dotfile denial, no-store HTML and immutable hashed assets. A browser journey registers a real sandbox owner, creates a venue/menu/table, opens the returned signed QR link in another browser context, orders the owner's item, sees its bill, and loads the staff sign-in assets independently. The loopback sandbox shares this serving code but uses disposable memory state. Docker workspace manifests now include owner/UI; a clean container build and real PostgreSQL/Redis deployment remain unverified because Docker is unavailable locally.
+
+## Social owner sign-in
+
+Google/GitHub server adapters and bilingual owner controls are implemented. Protocol tests cover one-time browser-bound completion, origin/state/replay rejection, no URL bearer tokens, existing-email collision and registration disablement. Locally signed Google JWT tests cover signature, issuer, audience, nonce, expiry, age, authorized party and verified email. Real provider credentials, console registration, account linking and live provider acceptance are still outstanding. See SOCIAL_SIGN_IN.md; disabled buttons explicitly say credentials are not configured.

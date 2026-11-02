@@ -7,3 +7,5 @@
 .owner-main{padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right));padding-bottom:max(40px,env(safe-area-inset-bottom))}@media(min-width:721px){.owner-main{padding-left:max(32px,env(safe-area-inset-left));padding-right:max(32px,env(safe-area-inset-right))}}
 
 @media(max-width:720px){input:not([type=checkbox]):not([type=radio]),select,textarea{font-size:max(16px,1rem)!important}}
+
+.social-sign-in{border-top:1px solid var(--cm-border);margin-top:24px;padding-top:20px}.social-sign-in .cm-row{gap:12px}.social-sign-in .cm-button{flex:1 1 200px}.social-sign-in>p{margin-top:12px}
