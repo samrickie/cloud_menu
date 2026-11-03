@@ -1,17 +1,19 @@
 # Cloud-Menu
 
-GitHub-only hosting: the root `index.html` is a clearly labelled static design preview with six supplied reference boards, not the live ordering application. See [GitHub Pages setup and limits](docs/GITHUB_PAGES.md).
+The actual connected staging application is at https://cloud-menu-staging.onrender.com (owner `/owner/`, staff `/staff/`, guests enter through signed table QR links). The free service can sleep and its free database expires on 2 December 2026. See [owner, manager and kitchen procedures](docs/OWNER_OPERATIONS.md).
+
+GitHub Pages: the root `index.html` is a clearly labelled static design preview with six supplied reference boards, not the live ordering application. See [GitHub Pages setup and limits](docs/GITHUB_PAGES.md).
 
 To run the actual connected application locally, build all apps with `pnpm build`, then use `pnpm exec tsx tools/demo-server.ts` for the labelled, disposable loopback sandbox. It prints a signed guest link; owner setup is at http://127.0.0.1:4173/owner/ and staff sign-in at http://127.0.0.1:4173/staff/. Owner-created menu items and tables connect to that same guest app. Sandbox data is lost on restart and no real payments are configured. The production start uses PostgreSQL/Redis; `SERVE_FRONTENDS=true` serves the built apps from the API origin. Configure `GUEST_ORIGIN` to that actual HTTPS origin before printing QR stickers.
 
-QR-based guest ordering for lounges and casual dining in Dar es Salaam. This branch extends the Sprint 1 ordering and administration foundation with the luxury venue platform in incremental slices. See [delivery status](docs/LUXURY_DELIVERY_STATUS.md) and [visual reference](docs/DESIGN_REFERENCE.md). All supplied examples and generated fixtures are explicitly **DEMO** data. Split bills, real mobile-money integration, full KDS state management and waiter dashboards belong to later sprints.
+QR-based guest ordering for lounges and casual dining in Dar es Salaam. This branch extends the Sprint 1 ordering and administration foundation with the luxury venue platform in incremental slices. See [delivery status](docs/LUXURY_DELIVERY_STATUS.md) and [visual reference](docs/DESIGN_REFERENCE.md). All supplied examples and generated fixtures are explicitly **DEMO** data. Guest bills and splits, owner/manager reports and sellable-unit inventory are implemented. Real mobile-money integration and complete KDS fulfillment remain unfinished.
 
 ## Setup
 
 Use Node.js 24 LTS, pnpm 10.33.0, Docker Compose and Git. The workstation used for development has an older system Node, so local verification used the bundled Node 24 runtime.
 
 1. Copy `.env.example` to `.env`. Set a local database password and match it in `DATABASE_URL`. Generate **independent** TOKEN_SECRET and QR_SECRET values with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Keep `.env` private. Production values must come from a secret manager.
-2. Run `pnpm install`. A lockfile could not be generated on the development workstation because registry access failed after an interrupted install. Direct dependency versions are pinned. Generate and review `pnpm-lock.yaml` before treating hosted builds as reproducible; this is an explicit delivery gap.
+2. Run `pnpm install --frozen-lockfile`. Direct dependencies and the reviewed dependency graph are pinned in `pnpm-lock.yaml`.
 3. Run `docker compose up -d`.
 4. Run `node --env-file=.env --import tsx tools/migrate.ts`. Migration 0001 is the supplied SQL unchanged. The migration runner verifies checksums of applied migrations and uses a transaction and advisory lock.
 5. Optional demo: set `DEMO_STAFF_PIN` in `.env`, then run `node --env-file=.env --import tsx tools/seed.ts`. It prints the **DEMO** venue code, staff identifier and guest QR URL. It refuses to overwrite an existing demo venue. The PIN is hashed with bcrypt before storage and is never printed.
@@ -23,7 +25,7 @@ For a disposable browser demo after building, use `node --import tsx tools/demo-
 
 | Command | Purpose |
 | --- | --- |
-| `pnpm test` | Unit and Fastify route integration tests with a test-only memory store |
+| `pnpm test` | Unit/API tests plus migrations and operations in embedded PostgreSQL |
 | `pnpm typecheck` / `pnpm lint` | TypeScript and ESLint checks |
 | `pnpm build` | Guest, staff and owner apps; Workbox guest service worker |
 | `pnpm budget` | Measure initial production JS including static imports, enforce 150,000 gzip bytes |
@@ -47,7 +49,7 @@ On this Windows workstation browser checks use `LOCAL_EDGE=1`; Lighthouse uses `
 
 An order stores immutable item/modifier price snapshots, note and station plus an outbox event inside one transaction. Server prices always win. A signed five-minute quote lets the guest review changed prices before confirming. Both the header idempotency key and session-scoped `client_order_id` prevent duplicates. A refreshed quote is excluded from the business-payload hash so a lost-response retry can safely use a refreshed quote for the same cart.
 
-The image adapter stores responsive WebP files in `UPLOAD_DIR`. Production needs shared object storage/CDN before multiple API nodes can serve the same images. The service worker caches shell, venue menu and images; it never queues order writes while offline.
+Optimized responsive WebP variants are stored in PostgreSQL with a 50 MB per-venue quota; `UPLOAD_DIR` is a legacy read fallback. Production should move media to shared object storage/CDN with cleanup. The service worker caches shell, venue menu and images; it never queues order writes while offline.
 
 ## Documents and delivery evidence
 
@@ -61,12 +63,12 @@ The image adapter stores responsive WebP files in `UPLOAD_DIR`. Production needs
 - [Evidence and DoD gaps](docs/SPRINT_1_REPORT.md)
 - [Operations runbook](docs/RUNBOOK.md)
 
-Repository: [samrickie/cloud_menu](https://github.com/samrickie/cloud_menu). Publication uses the connected GitHub API because direct Git traffic is blocked. The architecture PDF (a duplicate of the included architecture DOCX) and wireframe PowerPoint remain local because the company proxy blocked their upload. The local original source snapshot remains preserved.
+Repository: [samrickie/cloud_menu](https://github.com/samrickie/cloud_menu). Publication uses Git push with configured credentials. The architecture PDF (a duplicate of the included architecture DOCX) and wireframe PowerPoint remain local because the company proxy blocked their upload. The local original source snapshot remains preserved.
 
-Deployment is pending a configured staging environment and verification gates. A green local suite does not imply PO acceptance, peer review, successful hosted CI or production readiness.
+A separate free Render staging service is deployed; production hosting and acceptance gates remain open. A green local suite does not imply PO acceptance, peer review, successful hosted CI or production readiness.
 
 Owner accounts are separate from staff PIN login. Set `OWNER_REGISTRATION_ENABLED=true` only for local development while verified email delivery is pending. The loopback demo server exposes `/owner/` and uses disposable memory state; production never uses it. Owner bearer tokens are held in memory and sign-out clears them; a reload requires signing in again.
 
-The guest app now uses Noir & Gold and venue themes, note chips, live order snapshots and waiter calls. See [expanded delivery evidence](docs/LUXURY_DELIVERY_STATUS.md) for the exact tested slice and remaining gaps. Live staff transitions, billing/splits and payments are still being implemented. Fresh local Lighthouse figures apply only to the labelled three-item/no-photo sample fixture.
+The guest app now uses Noir & Gold and venue themes, note chips, live order snapshots and waiter calls. See [expanded delivery evidence](docs/LUXURY_DELIVERY_STATUS.md) for the exact tested slice and remaining gaps. Live staff fulfillment transitions and real payments remain unfinished; guest billing/splits are connected to the API. Fresh local Lighthouse figures apply only to the labelled three-item/no-photo sample fixture.
 
-Run `pnpm --filter @cloud-menu/api worker` alongside the API after applying migrations. It uses the same `.env` PostgreSQL/Redis connections and schedules bounded split-lock expiry checks with pg-boss. Request-time checks enforce expiry when a worker is delayed. This worker has local adapter tests; live PostgreSQL/Redis execution and shutdown are still deployment gates.
+Run `pnpm --filter @cloud-menu/api worker` alongside the API after applying migrations. It uses the same `.env` PostgreSQL/Redis connections and schedules bounded split-lock expiry checks with pg-boss. Request-time checks enforce expiry when a worker is delayed. Free Render staging runs this scheduler inside the web process. An always-on production worker and production shutdown testing remain gates.

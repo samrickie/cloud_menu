@@ -3,14 +3,15 @@ import { z } from 'zod';
 import { Problem } from './security.ts';
 import type { Context } from './context.ts';
 import type {Row} from './store.ts';
-export async function menuData(ctx:Context,venue_id:string){
+export async function menuData(ctx:Context,venue_id:string,admin=false){
  const menus=await ctx.store.rows('menus',{venue_id,is_active:true});const categories:Row[]=[];
  for(const m of menus){for(const c of (await ctx.store.rows('categories',{menu_id:m.id,is_active:true})).sort((a,b)=>a.sort_order-b.sort_order)){
   const items:Row[]=[];for(const item of (await ctx.store.rows('items',{venue_id,category_id:c.id,is_active:true})).sort((a,b)=>a.sort_order-b.sort_order)){
    const groups=[];for(const link of await ctx.store.rows('item_modifier_groups',{item_id:item.id})){
     const [group]=await ctx.store.rows('modifier_groups',{id:link.group_id,venue_id});if(group)groups.push({...group,modifiers:(await ctx.store.rows('modifiers',{group_id:group.id})).map(m=>({...m,price_delta_tzs:Number(m.price_delta_tzs)}))});
    }
-   items.push({...item,price_tzs:Number(item.price_tzs),modifier_groups:groups,image_variants:item.image_key?[320,640,960].map(w=>({width:w,url:`/media/${item.image_key}-${w}.webp`})) : []});
+   const {stock_quantity,stock_revision:_revision,low_stock_threshold:_threshold,track_stock,...publicItem}=item;
+   items.push({...publicItem,is_available:item.is_available&&(admin||!track_stock||stock_quantity>0),price_tzs:Number(item.price_tzs),modifier_groups:groups,image_variants:item.image_key?[320,640,960].map(w=>({width:w,url:`/media/${item.image_key}-${w}.webp`})) : []});
   }categories.push({...c,items});
  }}return {venue_id,currency:'TZS',version:menus.reduce((sum,m)=>sum+m.version,0),categories};
 }

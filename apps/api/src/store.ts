@@ -1,8 +1,12 @@
 import pg from 'pg';
-export const tables = ['venues','dining_tables','table_sessions','session_participants','menus','categories','items','modifier_groups','modifiers','item_modifier_groups','orders','order_items','order_item_modifiers','idempotency_keys','realtime_events','staff_users','audit_log','owner_accounts','venue_profiles','waiter_calls','bills','bill_splits','bill_shares','bill_share_items','payment_transactions','owner_identities','oauth_flows'] as const;
+import type {ReportWindow} from './dashboard.ts';
+export const tables = ['venues','dining_tables','table_sessions','session_participants','menus','categories','items','modifier_groups','modifiers','item_modifier_groups','orders','order_items','order_item_modifiers','idempotency_keys','realtime_events','staff_users','audit_log','owner_accounts','venue_profiles','waiter_calls','bills','bill_splits','bill_shares','bill_share_items','payment_transactions','owner_identities','oauth_flows','inventory_movements','menu_images'] as const;
 export type Table = typeof tables[number];
 export type Row = Record<string,any>;
 export interface Store {
+ recentOrders(venue:string,station?:string,status?:string):Promise<Row[]>;
+ dashboard(venue:string,window:ReportWindow):Promise<Row>;
+ imageStorageBytes(venue:string):Promise<number>;
  expiredSplits(limit:number):Promise<Row[]>;
  lockSplit(venue:string,session:string,id:string):Promise<Row|undefined>;
  allocations(venue:string,session:string,split:string):Promise<Row[]>;
@@ -23,6 +27,9 @@ export function normalizeRow(row:Row):Row{return Object.fromEntries(Object.entri
 export class PostgresStore implements Store {
  constructor(private pool:pg.Pool,private client?:pg.PoolClient){}
  private query(sql:string,values:any[]=[]){return (this.client??this.pool).query(sql,values);}
+ async recentOrders(venue:string,station?:string,status?:string){return (await this.query("SELECT o.* FROM orders o WHERE o.venue_id=$1 AND ($2::station_type IS NULL OR EXISTS(SELECT 1 FROM order_items i WHERE i.order_id=o.id AND i.station=$2::station_type)) AND ($3::order_status IS NULL OR o.status=$3::order_status) ORDER BY o.created_at DESC,o.id LIMIT 200",[venue,station??null,status??null])).rows.map(normalizeRow);}
+ async dashboard(venue:string,w:ReportWindow){return (await this.query('SELECT cloud_menu_dashboard($1,$2,$3,$4,$5,$6,$7) AS report',[venue,w.start,w.end,w.previousStart,w.previousEnd,w.comparisonStart,w.comparisonEnd])).rows[0].report;}
+ async imageStorageBytes(venue:string){const value=Number((await this.query('SELECT COALESCE(sum(octet_length(content)),0) AS bytes FROM menu_images WHERE venue_id=$1',[venue])).rows[0].bytes);if(!Number.isSafeInteger(value))throw Error('Invalid image storage total');return value;}
  private table(table:Table){if(!tables.includes(table))throw new Error('Unknown table');return ident(table);}
  async lockSplit(venue:string,session:string,id:string){if(!this.client)throw Error('Split row lock requires a transaction');return (await this.query('SELECT * FROM bill_splits WHERE venue_id=$1 AND session_id=$2 AND id=$3 FOR UPDATE',[venue,session,id])).rows.map(normalizeRow)[0];}
  async expiredSplits(limit:number){if(!Number.isInteger(limit)||limit<1||limit>100)throw Error('Invalid expiry batch');return (await this.query("SELECT b.* FROM bill_splits b WHERE b.status='LOCKED' AND b.lock_expires_at<=now() AND NOT EXISTS (SELECT 1 FROM bill_shares s WHERE s.split_id=b.id AND s.venue_id=b.venue_id AND s.session_id=b.session_id AND (s.status='PENDING' OR EXISTS (SELECT 1 FROM payment_transactions p WHERE p.share_id=s.id AND p.venue_id=s.venue_id AND p.status IN ('INITIATED','PENDING')))) ORDER BY b.lock_expires_at,b.id LIMIT $1",[limit])).rows.map(normalizeRow);}

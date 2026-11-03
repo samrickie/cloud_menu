@@ -1,77 +1,182 @@
 # Expanded platform delivery evidence
 
+
+
 This is incremental work, not a production release. The original Sprint 1 report remains separate.
+
+
 
 ## Owner API foundation
 
+
+
 Automated acceptance coverage includes registration and bcrypt hashing, trial venue/category creation, own-venue login/selection, foreign-owner denial, strict profile validation, measured contrast rejection, draft privacy, incomplete launch rejection, configured publication, public credential exclusion, and immediate disabled-account denial across owner/menu/table routes. Eleven owner API tests cover these boundaries and default sample inventory/station routing; tests pass locally against the test memory adapter; PostgreSQL execution is still unverified in this environment.
+
+
 
 Shared themes have four passing contrast tests. The saved reference HTML is decoded without executing embedded JavaScript and its licensed Latin fonts are self-hosted.
 
+
+
 Remaining DoD gates for this slice: verified email delivery/recovery/MFA; owned asset management; account verification and production registration enablement; subdomain DNS/host routing; receiving-account launch checks; PostgreSQL integration/migration execution; deployment, review and physical-device validation. Broad platform workflows and dashboard aggregates remain in the ordered implementation plan. Do not expose this incremental API as a payment-enabled production service.
+
+
 
 Remote publication remains partial under the previously recorded corporate proxy restrictions. PR #1 is a draft of the earlier Sprint 1 work, not this feature branch. No new publication or deployment is claimed.
 
+
+
 ## Tables & QR API
+
+
 
 Five additional tests cover range metadata, unique venue/table links, repeat generation reuse, single tables, atomic CSV validation, bad ranges, tampering, rotation, context binding, foreign list/export/rotation denial and PNG QR module pixels. The original three QR acceptance tests also pass. A4 PDF and ivory PNG were rendered and visually inspected locally; these are explicitly demo fixtures. Actual phone/scanner decoding and physical printer tests are still pending. The owner browser UI now supports style previews, ranges, single/CSV tables, PNG/PDF downloads, rotation confirmation and print-all. Exact export font fidelity is still pending.
 
+
+
 ## Owner browser UI
+
+
 
 The isolated `apps/owner` app includes account and trial venue creation, seven setup steps, four layout variants, four preset themes/custom contrast checking, EN/SW, ordered sections, bilingual welcome and opening hours, live preview, menu creation with category station defaults, and Tables & QR. Tokens remain in memory and the production owner bundle sets a restrictive CSP. Payout verification is explicitly unavailable pending provider integration; go-live remains blocked for unverified accounts and sample-only inventory.
 
+
+
 Browser acceptance tests cover saving settings and hours, adding a real menu item, incomplete publication rejection, table ranges/single/CSV, PNG/PDF downloads, rotation, print-all preparation, Swahili, 280/360/720/884/1440 px layouts, enlarged text and reduced motion. Setup and table screens have 360/1440 regression snapshots. Snapshot QR images and random venue slugs are masked; these snapshots do not prove exact canvas equivalence or phone scanner readability. Baselines were captured on Windows Edge; Linux CI comparisons still require execution/review.
+
+
 
 The latest owner build is approximately 27.3 KB gzip JS, with fonts separate. Guest JS has not gained any owner/chart/QR modules. Do not reuse previous Lighthouse figures as measurements of this expanded platform.
 
+
+
 ## Guest operations API
+
+
 
 Six local acceptance/security tests pass for waiter-call concurrent deduplication, acknowledgement permissions/replay, foreign-session denial, strict input, scoped order reads, authenticated SSE replay/live delivery, a connection race and unavailable subscription cleanup. Production has Redis subscriber wiring and bounded durable replay. These tests use the memory adapter and loopback HTTP; they do not certify PostgreSQL/Redis multi-node performance. Guest UI integration, staff state changes, bill updates, operational call retention/resolution and connection/load validation remain pending.
 
+
+
 ## Guest PWA visual and operations integration
+
+
 
 Guest screens now use the recovered Noir & Gold fonts/tokens, bilingual kitchen-note chips, a modal cart, live session order snapshots, waiter reasons/messages and acknowledgement state. The guest bundle excludes owner QR generation and chart code. Browser tests cover menu/customisation snapshots, submitted notes, waiter requests, folded/unfolded widths, 200% text with non-overlapping floating actions, short landscape sheets, denied local storage with ordering, and a closed-session signal requiring explicit re-entry. These client checks do not complete US-206 until staff transitions and bill recalculation are implemented.
 
+
+
 SSE requests have low network priority because a long-lived background stream must not compete with critical page content. Forced menu refresh uses a NetworkFirst service-worker rule; normal loads retain cached menu behavior. Private session/order writes are never queued offline. Native dialogs trap focus; sheets respect reduced motion and dynamic viewport height. Denied storage falls back to the current tab with an explicit persistence notice.
+
+
 
 Fresh local Lighthouse evidence: initial guest JS 16,653 gzip bytes; three-run p75 Fast 3G LCP 1956.8877 ms and 4G LCP 485.00345 ms, both 4x CPU. All six fresh reports have no warnings. Build files are recorded in `.artifacts/lighthouse-summary.json`. The fixture has three explicitly labelled Sample data items and no photos, served on loopback; these are not field or production p75 results. Earlier runs with the streaming request at high priority timed out and are excluded. The budget harness now rejects incomplete reports and non-finite/missing metrics.
 
+
+
 Remaining guest/operations work: staff state changes and availability events, bill/split/payment UI and contracts, reconnect/device/load validation and operational lifecycle/retention jobs. Production source publication, dependency audit/lockfile and deployment remain separate unresolved gates.
+
+
 
 ## US-301 billing API foundation
 
+
+
 Server-side bill totals aggregate immutable order snapshots, exclude rejected/cancelled lines, retain modifier amounts, disclose included/exclusive tax and use integer BigInt rounding. Bills snapshot venue rates, emit atomic bill.updated events and have stable versions on repeated reads. Local tests cover three-order aggregation, updates, venue/session isolation, rate stability, unsafe/fractional money and loopback SSE timing. Guest bill UI, split/payment workflows, tax/fiscal approval and PostgreSQL execution remain separate gates; this API slice does not claim the complete billing experience is production-ready.
+
+
 
 ## US-302 equal-split API foundation
 
+
+
 Local tests cover the exact 90,000/3 and 100,000/3 acceptance examples, all payer counts 1–50 at boundary totals including maximum safe integer money, ordered server-created slots, invalid counts/body/session fields, draft replacement and locked-split denial. The tenant-key/composite-FK migration is authored but PostgreSQL execution remains unverified. Guest split UI, claims and locking follow in the next stories; no payment-provider behavior is claimed.
+
+
 
 ## US-303 itemized-split API foundation
 
+
+
 Seven local tests cover proportional extras, partial/unassigned balances, concurrent double-claim rejection, the documented coordinator payload and retry, ownership-stealing denial, foreign item/split denial, atomic slot claims, cross-session/venue isolation, and exact largest-remainder money. Paid portions are excluded using scoped SQL aggregates. PostgreSQL execution, split-lock integration and guest bill/split UI remain outstanding at this slice.
+
+
 
 ## US-305 split-lock API foundation
 
+
+
 Eight local tests cover ten-minute locking, frozen equal base-item allocations, pending new-order balances, concurrent/superseded confirmations, stale bill and split revisions, itemized leftovers, initiated-payment expiry/unlock guards, cross-session/venue denial, worker sweep replay and safe-integer apportionment. These are memory-adapter tests; PostgreSQL row locks, migrations and the scheduled pg-boss process have not run against real infrastructure. Guest confirmation/payment UI, staff-authorized unlock, deployed worker behavior, paid-ledger reconciliation and PO acceptance remain DoD gaps. This slice must not be described as a complete production payment flow.
+
+
 
 Infrastructure regression checks cover repeated readiness probes reusing existing dependency clients, a sanitized 503 on dependency failure, and preservation of millisecond precision for PostgreSQL Date lock deadlines. The production readiness handler no longer creates Redis subscribers on each probe.
 
+
+
 ## Functional guest bill and split interface
+
+
 
 Guests can open their actual session bill, inspect quantities/modifiers/notes and totals, create equal/itemized splits, claim shares, assign item portions, confirm the split, see pending new orders, and explicitly unlock before recalculation. Private bill responses are not cached. Writes are disabled offline and payment configuration is truthfully unavailable.
 
+
+
 Five browser scenarios use real loopback API calls and two browser guests, with no mocked bill responses. They cover exact remainders, invalid counts, an order racing confirmation, offline controls, cross-guest allocations/ownership, pending balance, lock/unlock, EN/SW, fold widths, enlarged text and bill snapshots at 360/1440. These memory-adapter tests do not verify PostgreSQL or production readiness. The Pages site remains a separate reference showcase.
+
+
 
 Fresh measurements for this UI build: initial guest JS 18,923 gzip bytes. All six local Lighthouse reports completed without warnings; three-run nearest-rank p75 LCP is 2105.11755 ms on Fast 3G and 450.98965 ms on 4G, both 4x CPU. The dynamic bill module is about 3.29 KB gzip and is not an initial menu dependency. These figures use the labelled loopback three-item/no-photo fixture and are not field measurements.
 
+
+
 ## Connected application serving
+
+
 
 The API has opt-in production static serving for guest, owner and staff builds on one origin, with separate paths and asset roots. A filesystem integration test verifies root isolation, API/missing-asset 404 problems, dotfile denial, no-store HTML and immutable hashed assets. A browser journey registers a real sandbox owner, creates a venue/menu/table, opens the returned signed QR link in another browser context, orders the owner's item, sees its bill, and loads the staff sign-in assets independently. The loopback sandbox shares this serving code but uses disposable memory state. Docker workspace manifests now include owner/UI; a clean container build and real PostgreSQL/Redis deployment remain unverified because Docker is unavailable locally.
 
+
+
 ## Social owner sign-in
+
+
 
 Google/GitHub server adapters and bilingual owner controls are implemented. Protocol tests cover one-time browser-bound completion, origin/state/replay rejection, no URL bearer tokens, existing-email collision and registration disablement. Locally signed Google JWT tests cover signature, issuer, audience, nonce, expiry, age, authorized party and verified email. Real provider credentials, console registration, account linking and live provider acceptance are still outstanding. See SOCIAL_SIGN_IN.md; disabled buttons explicitly say credentials are not configured.
 
+
+
 ## Health navigation correction
 
+
+
 An installed guest service worker previously intercepted /health and /ready navigations and showed the QR landing page. Both paths now bypass that fallback, including query strings. The regression test first failed with text/html instead of application/json, then passed with real health JSON and the fixture readiness 404 problem preserved. The production readiness endpoint still checks PostgreSQL and Redis.
+
+
+
+## Owner and kitchen operations — November 2026
+
+
+
+The owner navigation now exposes Dashboard, Inventory and Team. Existing venue sign-in opens real reporting, while new venues retain setup. Manager staff sign-in opens the same venue report; kitchen/bar accounts have station inventory and recent tickets with preparation notes. Owner staff provisioning hashes PINs, supports safe retries and immediate access revocation. Managers retain the pre-existing advanced category/modifier/CSV tools. Those legacy advanced tools and table controls still have English-only copy; new operations screens have EN/SW strings.
+
+
+
+Orders deduct opted-in sellable stock atomically and once. Adjustments require a reason, a client adjustment ID and the latest stock revision. Zero stock changes guest availability without overwriting the manual availability switch. Database movements record the actor/delta/remaining units. Existing stock is never guessed. Recipe ingredients and automatic cancellation restocking are not implemented.
+
+
+
+Menu creation/editing includes bilingual descriptions, optimized photo upload/preview/removal, manual availability and modifier-group assignment. Images are quota-bounded PostgreSQL bytea rather than new ephemeral files. Raster-format validation rejects disguised SVG. Photos, price snapshots and notes connect to the guest app and station tickets.
+
+
+
+The real migration/query test executes all migrations in embedded PostgreSQL and checks dashboard aggregates, transactional stock/replay, cross-venue isolation, staff tickets and bytea image reads. Its reusable checks are also wired into native PostgreSQL 16 CI. Embedded tests serialize their single connection; native multi-client concurrency remains a separate CI check. Fourteen focused backend tests pass locally. Browser checks cover owner-to-guest ordering, stock deduction, manager PIN sign-in, kitchen receipt/notes, CSV and 280/360/720/884/1440 widths, with deterministic dashboard snapshots at 360/1440. Final full-suite evidence is captured by the pre-commit runner.
+
+
+
+Current guest initial JS is **19,174 gzip bytes**. Six complete cold Lighthouse runs use a fresh browser profile each time, after a reused-profile run was rejected for an IndexedDB warning. Three-run nearest-rank p75 LCP: **2108.5281 ms Fast 3G**, **530.95845 ms 4G**, both 4× CPU. The fixture is the labelled loopback three-item/no-photo menu; these are not hosted/field results or an image-heavy venue benchmark.
+
+
+
+A lockfile is now generated and included in CI/container installation. The dependency vulnerability audit is **unverified**: its registry request returned EACCES. Native PostgreSQL 16 CI, dependency audit, independent security review, physical foldables/iOS, translation review, PO acceptance, production backup/restore and object-storage migration remain gates. Redis aggregation cache is 45 seconds; rollups are deferred pending query-volume measurements. Real payment-provider setup, full KDS fulfillment/cancellation and ingredient accounting remain outside this update. See OWNER_OPERATIONS.md for metric definitions and daily SOP.
+

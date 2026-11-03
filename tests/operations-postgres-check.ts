@@ -1,0 +1,22 @@
+// Reused against embedded PostgreSQL locally and native PostgreSQL 16 in CI.
+import {randomUUID} from 'node:crypto';
+import assert from 'node:assert/strict';
+import sharp from 'sharp';
+import type {Store} from '../apps/api/src/store.ts';
+import {buildApp} from '../apps/api/src/app.ts';
+import {auth,signQR} from '../apps/api/src/security.ts';
+export async function checkOperationsPostgres(store:Store,secret:string){
+ const app=await buildApp({store,tokenSecret:secret,qrSecret:secret,logger:false});
+ try{
+ async function venue(name:string,price:number){const v=await store.add('venues',{slug:'sample-'+randomUUID(),name:'Sample data '+name,status:'ACTIVE'}),staff=await store.add('staff_users',{venue_id:v.id,full_name:'Sample data Owner',role:'OWNER',pin_hash:'test-only-unused',is_active:true}),headers={authorization:'Bearer '+await auth(secret).sign({kind:'staff',venue_id:v.id,staff_id:staff.id,role:'OWNER'},3600)},m=await store.add('menus',{venue_id:v.id,name:'Sample data menu'}),c=await store.add('categories',{menu_id:m.id,name_en:'Sample data food'}),item=await store.add('items',{venue_id:v.id,category_id:c.id,name_en:'Sample data meal',price_tzs:price,station:'KITCHEN',track_stock:true,stock_quantity:2}),table=await store.add('dining_tables',{venue_id:v.id,label:'Sample data 1',qr_code:randomUUID()}),entry=(await app.inject({method:'POST',url:'/v1/sessions/init',payload:{qr:signQR(table.qr_code,1,secret),device_id:randomUUID()}})).json();return {v,headers,item,entry};}
+ const a=await venue('Operations SQL',12345),b=await venue('Other venue SQL',999999);
+ const order=(f:typeof a)=>{const id=randomUUID();return {method:'POST' as const,url:`/v1/sessions/${f.entry.session.id}/orders`,headers:{authorization:'Bearer '+f.entry.session_token,'Idempotency-Key':id},payload:{client_order_id:id,items:[{item_id:f.item.id,quantity:1,note:'Sample data: sauce on the side'}]}};};
+ const first=order(a);assert.equal((await app.inject(first)).statusCode,201);assert.equal((await app.inject(first)).statusCode,200);
+ const last=await Promise.all([app.inject(order(a)),app.inject(order(a))]);assert.deepEqual(last.map(r=>r.statusCode).sort(),[201,409]);assert.equal((await store.rows('items',{id:a.item.id,venue_id:a.v.id}))[0].stock_quantity,0);assert.equal((await store.rows('inventory_movements',{venue_id:a.v.id,kind:'ORDER'})).length,2);assert.equal((await app.inject(order(b))).statusCode,201);
+ const response=await app.inject({url:'/v1/admin/dashboard?refresh=1',headers:a.headers});assert.equal(response.statusCode,200,response.body);const report=response.json();assert.equal(report.current.orders,2);assert.equal(report.current.ordered_sales_tzs,24690);assert.equal(report.current.revenue_tzs,0);assert.equal(report.revenue_by_hour.length,24);assert.equal(report.top_sellers[0].quantity,2);assert.equal(report.floor.length,1);
+ const inventory=(await app.inject({url:'/v1/staff/inventory',headers:a.headers})).json();assert.equal(inventory.items.length,1);assert.equal(inventory.items[0].id,a.item.id);assert.equal((await app.inject({method:'PATCH',url:`/v1/staff/inventory/${b.item.id}`,headers:a.headers,payload:{kind:'COUNT',quantity:99,expected_revision:0,client_adjustment_id:randomUUID(),reason:'Sample data attempt'}})).statusCode,404);
+ const tickets=(await app.inject({url:'/v1/staff/orders',headers:a.headers})).json();assert.equal(tickets.orders.length,2);assert.equal(tickets.orders[0].table_label,'Sample data 1');assert.equal(tickets.orders[0].items[0].note,'Sample data: sauce on the side');
+ const adminMenu=(await app.inject({url:'/v1/admin/menu',headers:a.headers})).json();assert.equal(adminMenu.categories[0].items[0].is_available,true,'Stock must not overwrite the manual availability switch');
+ const png=await sharp({create:{width:32,height:32,channels:3,background:'#C9A24B'}}).png().toBuffer(),upload=await app.inject({method:'POST',url:'/v1/admin/images',headers:{...a.headers,'content-type':'image/png'},payload:png});assert.equal(upload.statusCode,201,upload.body);const media=await app.inject(upload.json().variants[0].url);assert.equal(media.statusCode,200);assert.equal((await sharp(media.rawPayload).metadata()).format,'webp');assert.ok(await store.imageStorageBytes(a.v.id)>0);assert.equal(await store.imageStorageBytes(b.v.id),0);
+ }finally{await app.close();}
+}

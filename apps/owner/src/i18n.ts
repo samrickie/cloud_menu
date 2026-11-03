@@ -1,5 +1,7 @@
 export type Locale='en'|'sw';
 const sw:Record<string,string>={
+ 'Item saved':'Bidhaa imehifadhiwa',
+ 'Dashboard':'Dashibodi','Venue dashboard':'Dashibodi ya ukumbi','Inventory':'Hisa','Team':'Timu',
  'Or continue with':'Au endelea kwa','Continue with Google':'Endelea kwa Google','Continue with GitHub':'Endelea kwa GitHub','Social sign-in is not configured yet.':'Kuingia kupitia mitandao hakujasanidiwa bado.','Social sign-in could not be completed. Try again or use your email and password.':'Kuingia hakukufanikiwa. Jaribu tena au tumia barua pepe na nenosiri.',
  'Category default':'Kituo cha kundi',
  'Layout':'Mpangilio','Night Lounge':'Lounge ya usiku','Fresh Café':'Kahawa safi','Grill House':'Nyumba ya kuchoma','Minimal':'Rahisi','Opening hours':'Saa za kufungua','Monday':'Jumatatu','Tuesday':'Jumanne','Wednesday':'Jumatano','Thursday':'Alhamisi','Friday':'Ijumaa','Saturday':'Jumamosi','Sunday':'Jumapili','Closed':'Imefungwa','Opens':'Inafunguliwa','Closes':'Inafungwa','Email verified':'Barua pepe imethibitishwa',

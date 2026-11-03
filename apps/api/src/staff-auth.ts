@@ -4,6 +4,7 @@ import {compare} from 'bcryptjs';
 import type {Context} from './context.ts';
 import {Problem} from './security.ts';
 export function registerStaffAuth(app:FastifyInstance,ctx:Context,limit:(key:string,max:number)=>Promise<void>){
+ app.get('/v1/staff/me',async req=>{const s=await ctx.staff(req),[v]=await ctx.store.rows('venues',{id:s.venue_id});return {staff:{id:s.id,role:s.role,full_name:s.full_name},venue:{name:v.name,slug:v.slug}};});
  app.post('/v1/staff/auth/login',async request=>{
   await limit(`login:${request.ip}`,30);
   const input=z.object({venue_code:z.string().min(1).max(80),staff_id:z.uuid().optional(),pin:z.string().regex(/^\d{4,12}$/)}).parse(request.body);

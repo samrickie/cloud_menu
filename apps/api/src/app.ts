@@ -17,8 +17,11 @@ import {registerBilling} from './billing.ts';
 import {PricingError} from '../../../packages/shared/src/pricing.ts';
 import {registerSocialAuth} from './social-auth.ts';
 import type {SocialOptions} from './social-providers.ts';
+import {registerDashboard,type DashboardCache} from './dashboard.ts';
+import {registerInventory} from './inventory.ts';
+import {registerTeam} from './team.ts';
 import {registerSplits} from './splits.ts';
-export interface AppOptions {social?:SocialOptions;store:Store;tokenSecret:string;qrSecret:string;logger?:boolean;ownerRegistrationEnabled?:boolean;orderingEnabled?:boolean;uploadDir?:string;guestOrigin?:string;rateLimit?:(key:string,max:number,seconds:number)=>Promise<boolean>;publish?:(venue:string,seq:number)=>Promise<void>;subscribe?:ExternalSubscribe}
+export interface AppOptions {dashboardCache?:DashboardCache;social?:SocialOptions;store:Store;tokenSecret:string;qrSecret:string;logger?:boolean;ownerRegistrationEnabled?:boolean;orderingEnabled?:boolean;uploadDir?:string;guestOrigin?:string;rateLimit?:(key:string,max:number,seconds:number)=>Promise<boolean>;publish?:(venue:string,seq:number)=>Promise<void>;subscribe?:ExternalSubscribe}
 export async function buildApp(options:AppOptions){
  const {store}=options;const tokens=auth(options.tokenSecret);const broker=new RealtimeBroker(store,options.subscribe);const publish=async(venue:string,seq:number)=>{await broker.refresh(venue);await options.publish?.(venue,seq);};
  async function venueSummary(tx:Store,venue:Row){const [profile]=await tx.rows('venue_profiles',{venue_id:venue.id});const menus=await tx.rows('menus',{venue_id:venue.id,is_active:true});return {id:venue.id,name:venue.name,currency:'TZS',menu_version:Math.max(1,menus.reduce((n,m)=>n+Number(m.version??1),0)),is_sample:!!venue.is_sample,theme:profile?.theme??'noir',brand_colour:profile?.brand_colour??null,primary_text:profile?.primary_text??null};}
@@ -75,6 +78,9 @@ export async function buildApp(options:AppOptions){
  });
  registerMenu(app,context(store,options.tokenSecret));
  registerOrders(app,context(store,options.tokenSecret),limit,publish,options.orderingEnabled??true);
+ registerDashboard(app,context(store,options.tokenSecret),limit,options.dashboardCache);
+ registerInventory(app,context(store,options.tokenSecret),limit,publish);
+ registerTeam(app,context(store,options.tokenSecret),limit);
  registerStaffAuth(app,context(store,options.tokenSecret),limit);
  registerGuestOperations(app,context(store,options.tokenSecret),limit,publish);
  registerBilling(app,context(store,options.tokenSecret),publish);
@@ -82,7 +88,7 @@ export async function buildApp(options:AppOptions){
  registerGuestEvents(app,context(store,options.tokenSecret),broker,limit);
  registerSocialAuth(app,context(store,options.tokenSecret),options.tokenSecret,options.social,options.ownerRegistrationEnabled??true,limit);
  registerOwner(app,context(store,options.tokenSecret),limit,options.ownerRegistrationEnabled??true);
- await registerAdminMenu(app,context(store,options.tokenSecret),options.uploadDir??path.resolve('uploads'));
+ await registerAdminMenu(app,context(store,options.tokenSecret),options.uploadDir??path.resolve('uploads'),limit);
  registerTables(app,context(store,options.tokenSecret),options.qrSecret,options.guestOrigin??'http://localhost:5173',limit);
  return app;
 }

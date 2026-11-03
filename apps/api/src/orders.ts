@@ -7,6 +7,7 @@ import {menuData} from './menu.ts';
 import {priceLine,PricingError,tzs} from '../../../packages/shared/src/pricing.ts';
 import type {MenuItem} from '../../../packages/shared/src/index.ts';
 import type {Row} from './store.ts';
+import {deductStock} from './inventory.ts';
 import {syncBill} from './billing.ts';
 const inputSchema=z.object({client_order_id:z.uuid(),note:z.string().max(500).optional(),items:z.array(z.object({item_id:z.uuid(),quantity:z.number().int().min(1).max(99),modifiers:z.array(z.object({modifier_id:z.uuid()})).max(30).default([]),note:z.string().max(500).optional()})).min(1).max(99),quote_token:z.string().max(4000).optional()});
 async function priced(ctx:Context,venue:string,input:z.infer<typeof inputSchema>){
@@ -41,6 +42,7 @@ export function registerOrders(app:FastifyInstance,ctx:Context,limit:(key:string
    const date=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Dar_es_Salaam',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
    const previous=(await tx.rows('orders',{venue_id:guest.venue_id})).filter(o=>o.business_date===date);
    const order=await tx.add('orders',{id:randomUUID(),venue_id:guest.venue_id,session_id:sid,placed_by:guest.participant_id,order_no:previous.reduce((n,o)=>Math.max(n,o.order_no),0)+1,business_date:date,client_order_id:input.client_order_id,request_hash:clientHash,status:'NEW',subtotal_tzs:p.subtotal_tzs,note:input.note??null,created_at:new Date().toISOString()});
+   await deductStock(tx,guest.venue_id,order.id,p.lines);
    const lines:Row[]=[];for(const l of p.lines){const line=await tx.add('order_items',{id:randomUUID(),order_id:order.id,item_id:l.item_id,participant_id:guest.participant_id,name_snapshot:l.name,unit_price_tzs:l.unit_price_tzs,modifiers_total_tzs:l.modifiers_total_tzs,quantity:l.quantity,line_total_tzs:l.line_total_tzs,note:l.note,station:l.station,status:'NEW'});for(const m of l.modifiers)await tx.add('order_item_modifiers',{id:randomUUID(),order_item_id:line.id,modifier_id:m.id,name_snapshot:m.name_en,price_delta_tzs:m.price_delta_tzs});lines.push({...line,name:l.name});}
    const response={order:{...order,items:lines},repriced:false};const event=await tx.add('realtime_events',{venue_id:guest.venue_id,session_id:sid,event_type:'order.created',payload:response.order});const billing=await syncBill(tx,guest.venue_id,sid);
    const idem={scope,key,request_hash:bodyHash,response_code:201,response_body:response,expires_at:new Date(Date.now()+86400000).toISOString()};if(saved)await tx.patch('idempotency_keys',{scope,key},idem);else await tx.add('idempotency_keys',idem);
@@ -49,10 +51,10 @@ export function registerOrders(app:FastifyInstance,ctx:Context,limit:(key:string
   if(result.seq&&publish)await publish(guest.venue_id,Number(result.seq)).catch(()=>{});reply.code(result.replay?200:201);return result.body;
  });
  app.get('/v1/staff/orders',async request=>{
-  const staff=await ctx.staff(request);
+  const staff=await ctx.staff(request);await limit(`staff-orders:${staff.id}`,60);
   const query=z.object({status:z.literal('NEW').optional(),station:z.enum(['KITCHEN','BAR']).optional(),since_seq:z.coerce.number().int().min(0).default(0)}).parse(request.query);
   const station=['KITCHEN','BAR'].includes(staff.role as string)?staff.role:query.station;
-  const orders=[];for(const o of await ctx.store.rows('orders',{venue_id:staff.venue_id})){const lines=(await ctx.store.rows('order_items',{order_id:o.id})).filter(l=>!station||l.station===station);if(lines.length)orders.push({...o,items:lines});}
+  const orders=[];for(const o of await ctx.store.recentOrders(staff.venue_id,station,query.status)){const lines=(await ctx.store.rows('order_items',{order_id:o.id})).filter(l=>!station||l.station===station);if(lines.length){for(const l of lines)l.modifiers=await ctx.store.rows('order_item_modifiers',{order_item_id:l.id});const [session]=await ctx.store.rows('table_sessions',{id:o.session_id,venue_id:staff.venue_id});const [table]=session?await ctx.store.rows('dining_tables',{id:session.table_id,venue_id:staff.venue_id}):[];orders.push({...o,table_label:table?.label??null,items:lines});}}
   const seq=(await ctx.store.rows('realtime_events',{venue_id:staff.venue_id})).reduce((n,e)=>Math.max(n,Number(e.seq)),0);return {orders,seq};
  });
 }
