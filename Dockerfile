@@ -2,6 +2,7 @@ FROM node:24-bookworm-slim
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY apps/admin/package.json apps/admin/package.json
 COPY apps/api/package.json apps/api/package.json
 COPY apps/guest-pwa/package.json apps/guest-pwa/package.json
 COPY apps/staff/package.json apps/staff/package.json

@@ -16,9 +16,10 @@ export function registerSocialAuth(app:FastifyInstance,ctx:Context,secret:string
  app.get('/v1/owner/oauth/providers',async()=>({providers:(options?.providers??[]).map(p=>p.id)}));
  app.post('/v1/owner/oauth/:provider/start',async(req,reply)=>{
   await limit(`social-start:${req.ip}`,10);checkOrigin(req);const {provider}=z.object({provider:z.enum(['google','github'])}).parse(req.params),adapter=options?.providers.find(p=>p.id===provider);if(!adapter)throw new Problem(503,'OAUTH_UNAVAILABLE');
+  const {target}=z.object({target:z.enum(['owner','platform']).default('owner')}).strict().parse(req.query);
   const state=randomBytes(32).toString('base64url'),verifier=randomBytes(32).toString('base64url'),nonce=randomBytes(32).toString('base64url');
   await ctx.store.add('oauth_flows',{id:randomUUID(),state_hash:hash(state),purpose:'authorization',provider,account_id:null,expires_at:new Date(Date.now()+300000).toISOString(),used_at:null});
-  cookie(reply,'cm_social_flow',await seal({purpose:'authorization',state,provider,verifier,nonce},300),300);
+  cookie(reply,'cm_social_flow',await seal({purpose:'authorization',state,provider,verifier,nonce,target},300),300);
   return {url:adapter.authorizationURL({state,challenge:createHash('sha256').update(verifier).digest('base64url'),nonce,redirectURI:origin+`/v1/owner/oauth/${provider}/callback`})};
  });
  app.get('/v1/owner/oauth/:provider/callback',async(req,reply)=>{
@@ -35,8 +36,8 @@ export function registerSocialAuth(app:FastifyInstance,ctx:Context,secret:string
    });
    const ticket=randomBytes(32).toString('base64url');await ctx.store.add('oauth_flows',{id:randomUUID(),state_hash:hash(ticket),purpose:'finish',provider,account_id:account.id,expires_at:new Date(Date.now()+60000).toISOString(),used_at:null});
    // No OAuth access token or application bearer token is placed in a URL.
-   cookie(reply,'cm_social_finish',await seal({purpose:'finish',ticket},60),60);return reply.code(303).redirect(origin+'/owner/?oauth=complete');
-  }catch{return reply.code(303).redirect(origin+'/owner/?oauth=failed');}
+   cookie(reply,'cm_social_finish',await seal({purpose:'finish',ticket},60),60);return reply.code(303).redirect(origin+(flow.target==='platform'?'/admin/':'/owner/')+'?oauth=complete');
+  }catch{return reply.code(303).redirect(origin+(flow.target==='platform'?'/admin/':'/owner/')+'?oauth=failed');}
  });
  app.post('/v1/owner/oauth/finish',async(req,reply)=>{
   await limit(`social-finish:${req.ip}`,20);checkOrigin(req);const payload=await unseal(req,'cm_social_finish','finish'),flow=await consume(hash(String(payload.ticket)),'finish');cookie(reply,'cm_social_finish','',0);

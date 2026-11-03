@@ -19,9 +19,10 @@ import {registerSocialAuth} from './social-auth.ts';
 import type {SocialOptions} from './social-providers.ts';
 import {registerDashboard,type DashboardCache} from './dashboard.ts';
 import {registerInventory} from './inventory.ts';
+import {registerPlatform} from './platform.ts';
 import {registerTeam} from './team.ts';
 import {registerSplits} from './splits.ts';
-export interface AppOptions {dashboardCache?:DashboardCache;social?:SocialOptions;store:Store;tokenSecret:string;qrSecret:string;logger?:boolean;ownerRegistrationEnabled?:boolean;orderingEnabled?:boolean;uploadDir?:string;guestOrigin?:string;rateLimit?:(key:string,max:number,seconds:number)=>Promise<boolean>;publish?:(venue:string,seq:number)=>Promise<void>;subscribe?:ExternalSubscribe}
+export interface AppOptions {platformAdminEmails?:string[];dashboardCache?:DashboardCache;social?:SocialOptions;store:Store;tokenSecret:string;qrSecret:string;logger?:boolean;ownerRegistrationEnabled?:boolean;orderingEnabled?:boolean;uploadDir?:string;guestOrigin?:string;rateLimit?:(key:string,max:number,seconds:number)=>Promise<boolean>;publish?:(venue:string,seq:number)=>Promise<void>;subscribe?:ExternalSubscribe}
 export async function buildApp(options:AppOptions){
  const {store}=options;const tokens=auth(options.tokenSecret);const broker=new RealtimeBroker(store,options.subscribe);const publish=async(venue:string,seq:number)=>{await broker.refresh(venue);await options.publish?.(venue,seq);};
  async function venueSummary(tx:Store,venue:Row){const [profile]=await tx.rows('venue_profiles',{venue_id:venue.id});const menus=await tx.rows('menus',{venue_id:venue.id,is_active:true});return {id:venue.id,name:venue.name,currency:'TZS',menu_version:Math.max(1,menus.reduce((n,m)=>n+Number(m.version??1),0)),is_sample:!!venue.is_sample,theme:profile?.theme??'noir',brand_colour:profile?.brand_colour??null,primary_text:profile?.primary_text??null};}
@@ -48,10 +49,11 @@ export async function buildApp(options:AppOptions){
   const [table]=await store.rows('dining_tables',{qr_code:input.qr.split('.')[0],is_active:true});
   if(!table)throw new Problem(404,'QR_NOT_FOUND');
   if(!checkQR(input.qr,table.qr_code,table.qr_key_version,options.qrSecret,qrScope(table)))throw new Problem(422,'QR_SIGNATURE_INVALID');
+  if(!await store.venueAccess(table.venue_id))throw new Problem(403,'VENUE_SUSPENDED');
   return store.tx(`venue:${table.venue_id}`,async tx=>{
    const [current]=await tx.rows('dining_tables',{id:table.id,venue_id:table.venue_id,is_active:true});if(!current||!checkQR(input.qr,current.qr_code,current.qr_key_version,options.qrSecret,qrScope(current)))throw new Problem(422,'QR_SIGNATURE_INVALID');
    const [venue]=await tx.rows('venues',{id:table.venue_id});
-   if(!['ACTIVE','TRIAL'].includes(venue.status))throw new Problem(403,'VENUE_SUSPENDED');
+   if(!await tx.venueAccess(venue.id))throw new Problem(403,'VENUE_SUSPENDED');
    const active=await tx.rows('table_sessions',{table_id:table.id,status:'ACTIVE'});
    const now=new Date().toISOString();
    const session=active[0]??await tx.add('table_sessions',{id:randomUUID(),venue_id:venue.id,table_id:table.id,status:'ACTIVE',opened_at:now,last_activity_at:now});
@@ -72,10 +74,11 @@ export async function buildApp(options:AppOptions){
  app.patch('/v1/sessions/:id/participant',async request=>{
   const token=await tokens.verify(request.headers.authorization?.replace(/^Bearer /,''));const {id}=z.object({id:z.uuid()}).parse(request.params);
   if(token.kind!=='guest'||token.session_id!==id)throw new Problem(403,'SESSION_FORBIDDEN');
-  const [session]=await store.rows('table_sessions',{id,status:'ACTIVE'});if(!session)throw new Problem(409,'SESSION_CLOSED');
+  const [session]=await store.rows('table_sessions',{id,status:'ACTIVE'});if(!session)throw new Problem(409,'SESSION_CLOSED');if(!await store.venueAccess(session.venue_id))throw new Problem(403,'VENUE_SUSPENDED');
   const {display_name}=z.object({display_name:z.string().trim().min(1).max(60)}).parse(request.body);
   await store.patch('session_participants',{id:token.participant_id,session_id:id},{display_name});return {participant:{id:token.participant_id,display_name}};
  });
+ registerPlatform(app,context(store,options.tokenSecret),limit,options.platformAdminEmails??[],publish);
  registerMenu(app,context(store,options.tokenSecret));
  registerOrders(app,context(store,options.tokenSecret),limit,publish,options.orderingEnabled??true);
  registerDashboard(app,context(store,options.tokenSecret),limit,options.dashboardCache);

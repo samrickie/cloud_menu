@@ -5,6 +5,7 @@ import {randomBytes,randomUUID} from 'node:crypto';
 import {resolveTheme,validateTheme} from '../../../packages/ui/src/theme.ts';
 import type {Context} from './context.ts';
 import type {Row} from './store.ts';
+import {initialTrial} from './subscription-access.ts';
 import {Problem} from './security.ts';
 
 const email=z.email().max(254).transform(v=>v.toLowerCase());
@@ -56,6 +57,7 @@ export function registerOwner(app:FastifyInstance,ctx:Context,limit:(key:string,
   const result=await ctx.store.tx('venue-slug:'+input.slug,async tx=>{
    if((await tx.rows('venues',{slug:input.slug})).length)throw new Problem(409,'SLUG_UNAVAILABLE');
    const v=await tx.add('venues',{id:randomUUID(),name:input.name,slug:input.slug,owner_account_id:a.id,status:'TRIAL',currency:'TZS',max_participants:20});
+   await initialTrial(tx,v.id);
    const s=await tx.add('staff_users',{id:randomUUID(),venue_id:v.id,owner_account_id:a.id,full_name:a.full_name,role:'OWNER',pin_hash:pin,is_active:true,failed_attempts:0});
    await tx.add('venue_profiles',{venue_id:v.id,venue_type:input.venue_type,theme:'noir',template:'lounge',brand_colour:null,primary_text:null,languages:['en','sw'],sections:['Menu','Offers','Gallery','Reviews','Contact'],welcome_en:'',welcome_sw:'',hours:{},logo_key:null,cover_key:null,is_published:false,is_sample:false});
    const menu=await tx.add('menus',{id:randomUUID(),venue_id:v.id,name:'Menu',is_active:true,version:1});
@@ -76,6 +78,6 @@ export function registerOwner(app:FastifyInstance,ctx:Context,limit:(key:string,
   const {v,a}=await owner(req);return ctx.store.tx(`venue:${v.id}`,async tx=>{const [p]=await tx.rows('venue_profiles',{venue_id:v.id});const items=await tx.rows('items',{venue_id:v.id,is_active:true});const tables=await tx.rows('dining_tables',{venue_id:v.id,is_active:true});const missing=[!a.email_verified_at&&'verified_account',!items.some(i=>!i.is_sample)&&'menu',!tables.some(t=>!t.is_sample)&&'tables',!p&&'template',!['ACTIVE','TRIAL'].includes(v.status)&&'venue_active'].filter(Boolean);if(missing.length)throw new Problem(422,'ONBOARDING_INCOMPLETE','Complete the required setup steps.',{missing});await tx.patch('venue_profiles',{venue_id:v.id},{is_published:true});await tx.add('audit_log',{venue_id:v.id,actor_type:'STAFF',actor_id:(await ctx.staff(req)).id,action:'SITE_PUBLISHED',entity_type:'venue',entity_id:v.id,data:{}});return {published:true};});
  });
  app.get('/v1/sites/:slug',async req=>{
-  await limit(`site:${req.ip}`,60);const {slug:value}=z.object({slug}).parse(req.params);const [v]=await ctx.store.rows('venues',{slug:value});if(!v||!['ACTIVE','TRIAL'].includes(v.status))throw new Problem(404,'SITE_NOT_FOUND');const [p]=await ctx.store.rows('venue_profiles',{venue_id:v.id,is_published:true});if(!p)throw new Problem(404,'SITE_NOT_FOUND');const items=await ctx.store.rows('items',{venue_id:v.id,is_active:true});return {venue:publicVenue(v),site:publicSite(p),items:items.map(i=>({id:i.id,name_en:i.name_en,name_sw:i.name_sw,description_en:i.description_en,description_sw:i.description_sw,price_tzs:i.price_tzs,image_key:i.image_key,is_available:i.is_available,is_sample:i.is_sample}))};
+  await limit(`site:${req.ip}`,60);const {slug:value}=z.object({slug}).parse(req.params);const [v]=await ctx.store.rows('venues',{slug:value});if(!v||!await ctx.store.venueAccess(v.id))throw new Problem(404,'SITE_NOT_FOUND');const [p]=await ctx.store.rows('venue_profiles',{venue_id:v.id,is_published:true});if(!p)throw new Problem(404,'SITE_NOT_FOUND');const items=await ctx.store.rows('items',{venue_id:v.id,is_active:true});return {venue:publicVenue(v),site:publicSite(p),items:items.map(i=>({id:i.id,name_en:i.name_en,name_sw:i.name_sw,description_en:i.description_en,description_sw:i.description_sw,price_tzs:i.price_tzs,image_key:i.image_key,is_available:i.is_available,is_sample:i.is_sample}))};
  });
 }

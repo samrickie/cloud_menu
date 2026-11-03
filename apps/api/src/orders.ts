@@ -32,6 +32,7 @@ export function registerOrders(app:FastifyInstance,ctx:Context,limit:(key:string
   const sid=idParams(request.params),guest=await ctx.guest(request,sid);await limit(`orders:${sid}`,10);const key=z.uuid().parse(request.headers['idempotency-key']);const input=inputSchema.parse(request.body);
   const clientHash=hash(JSON.stringify({...input,quote_token:undefined})),bodyHash=clientHash,scope=`orders:create:${sid}`;
   const result=await ctx.store.tx(`venue:${guest.venue_id}`,async tx=>{
+   if(!await tx.venueAccess(guest.venue_id))throw new Problem(403,'VENUE_SUSPENDED');
    const [session]=await tx.rows('table_sessions',{id:sid,status:'ACTIVE'});if(!session)throw new Problem(409,'SESSION_CLOSED');
    const [saved]=await tx.rows('idempotency_keys',{scope,key});
    if(saved&&new Date(saved.expires_at).getTime()>Date.now()){if(saved.request_hash!==bodyHash)throw new Problem(422,'IDEMPOTENCY_CONFLICT');return {body:saved.response_body,replay:true};}

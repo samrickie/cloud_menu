@@ -1,9 +1,14 @@
 // Isolated demo/test server. Not used by the production start command.
 import {fixture,secrets} from '../tests/helpers.ts';
 import {signQR} from '../apps/api/src/security.ts';
+import {hash} from 'bcryptjs';
 import {randomUUID} from 'node:crypto';
 import {registerFrontends} from '../apps/api/src/frontends.ts';
-const f=await fixture({guestOrigin:'http://127.0.0.1:4173'});
+// Public disposable credentials for loopback browser tests only; never used by production.
+const demoAdmin={email:'sample-platform-admin@example.test',password:'Sample-only-admin-password-123'};
+const f=await fixture({guestOrigin:'http://127.0.0.1:4173',platformAdminEmails:[demoAdmin.email]});
+await f.store.add('owner_accounts',{id:randomUUID(),email:demoAdmin.email,full_name:'Sample data platform admin',password_hash:await hash(demoAdmin.password,12),email_verified_at:new Date().toISOString(),is_active:true,auth_version:1,failed_attempts:0});
+f.app.get('/__demo/platform',async()=>demoAdmin);
 const menu=await f.store.add('menus',{id:randomUUID(),venue_id:f.venue.id,is_active:true,name:'DEMO menu',version:1});
 for(const [index,name]of ['Drinks','Grill','Snacks'].entries()){
  const cat=await f.store.add('categories',{id:randomUUID(),menu_id:menu.id,name_en:name,name_sw:['Vinywaji','Vyakula vya kuchoma','Vitafunio'][index],is_active:true,sort_order:index});

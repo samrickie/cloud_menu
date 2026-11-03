@@ -1,5 +1,6 @@
 export type Locale='en'|'sw';
 const sw:Record<string,string>={
+ 'Subscription':'Usajili',
  'Item saved':'Bidhaa imehifadhiwa',
  'Dashboard':'Dashibodi','Venue dashboard':'Dashibodi ya ukumbi','Inventory':'Hisa','Team':'Timu',
  'Or continue with':'Au endelea kwa','Continue with Google':'Endelea kwa Google','Continue with GitHub':'Endelea kwa GitHub','Social sign-in is not configured yet.':'Kuingia kupitia mitandao hakujasanidiwa bado.','Social sign-in could not be completed. Try again or use your email and password.':'Kuingia hakukufanikiwa. Jaribu tena au tumia barua pepe na nenosiri.',

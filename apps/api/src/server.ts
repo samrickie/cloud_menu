@@ -2,6 +2,7 @@ import {z} from 'zod';
 import pg from 'pg';
 import Redis from 'ioredis';
 import {buildApp} from './app.ts';
+import {bindPlatformAdmins} from './platform.ts';
 import {PostgresStore} from './store.ts';
 import path from 'node:path';
 import {socialFromEnv} from './social-providers.ts';
@@ -13,7 +14,10 @@ const pool=new pg.Pool({connectionString:env.DATABASE_URL,max:10});const redis=n
 await pool.query('SELECT 1');await redis.ping();
 const subscriber=redis.duplicate();subscriber.on('error',()=>{});await subscriber.ping();
 const receivers=new Map<string,(seq:number)=>void>();subscriber.on('message',(channel,payload)=>{if(!channel.startsWith('venue:'))return;const seq=Number(payload);if(Number.isSafeInteger(seq)&&seq>0)receivers.get(channel.slice(6))?.(seq);});
-const app=await buildApp({dashboardCache:{get:key=>redis.get(key),set:(key,value,seconds)=>redis.set(key,value,'EX',seconds)},social:socialFromEnv(process.env),store:new PostgresStore(pool),ownerRegistrationEnabled:env.OWNER_REGISTRATION_ENABLED==='true',tokenSecret:env.TOKEN_SECRET,qrSecret:env.QR_SECRET,guestOrigin:env.GUEST_ORIGIN,orderingEnabled:env.ORDERING_ENABLED==='true',uploadDir:path.resolve(env.UPLOAD_DIR),subscribe:async(venue,receive)=>{receivers.set(venue,receive);try{await subscriber.subscribe('venue:'+venue);}catch(e){receivers.delete(venue);throw e;}return()=>{if(receivers.get(venue)===receive){receivers.delete(venue);void subscriber.unsubscribe('venue:'+venue).catch(()=>{});}};},rateLimit:async(key,max,seconds)=>{
+const platformAdminEmails=z.array(z.email().transform(v=>v.toLowerCase())).parse((process.env.PLATFORM_ADMIN_EMAILS??'').split(',').map(v=>v.trim()).filter(Boolean));
+const platformBindings=z.array(z.object({id:z.uuid(),email:z.email().transform(v=>v.toLowerCase())}).strict()).parse(JSON.parse(process.env.PLATFORM_ADMIN_BINDINGS??'[]'));
+await bindPlatformAdmins(new PostgresStore(pool),platformAdminEmails,platformBindings);
+const app=await buildApp({platformAdminEmails,dashboardCache:{get:key=>redis.get(key),set:(key,value,seconds)=>redis.set(key,value,'EX',seconds)},social:socialFromEnv(process.env),store:new PostgresStore(pool),ownerRegistrationEnabled:env.OWNER_REGISTRATION_ENABLED==='true',tokenSecret:env.TOKEN_SECRET,qrSecret:env.QR_SECRET,guestOrigin:env.GUEST_ORIGIN,orderingEnabled:env.ORDERING_ENABLED==='true',uploadDir:path.resolve(env.UPLOAD_DIR),subscribe:async(venue,receive)=>{receivers.set(venue,receive);try{await subscriber.subscribe('venue:'+venue);}catch(e){receivers.delete(venue);throw e;}return()=>{if(receivers.get(venue)===receive){receivers.delete(venue);void subscriber.unsubscribe('venue:'+venue).catch(()=>{});}};},rateLimit:async(key,max,seconds)=>{
  const n=await redis.eval("local n=redis.call('INCR',KEYS[1]); if n==1 then redis.call('EXPIRE',KEYS[1],ARGV[1]); end; return n",1,'cloud-menu:rate:'+key,seconds);return Number(n)<=max;
 },publish:async(venue,seq)=>{await redis.publish('venue:'+venue,String(seq));}});
 registerReadiness(app,pool,redis);
