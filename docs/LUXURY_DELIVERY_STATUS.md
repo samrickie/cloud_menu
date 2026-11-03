@@ -71,3 +71,7 @@ The API has opt-in production static serving for guest, owner and staff builds o
 ## Social owner sign-in
 
 Google/GitHub server adapters and bilingual owner controls are implemented. Protocol tests cover one-time browser-bound completion, origin/state/replay rejection, no URL bearer tokens, existing-email collision and registration disablement. Locally signed Google JWT tests cover signature, issuer, audience, nonce, expiry, age, authorized party and verified email. Real provider credentials, console registration, account linking and live provider acceptance are still outstanding. See SOCIAL_SIGN_IN.md; disabled buttons explicitly say credentials are not configured.
+
+## Health navigation correction
+
+An installed guest service worker previously intercepted /health and /ready navigations and showed the QR landing page. Both paths now bypass that fallback, including query strings. The regression test first failed with text/html instead of application/json, then passed with real health JSON and the fixture readiness 404 problem preserved. The production readiness endpoint still checks PostgreSQL and Redis.
