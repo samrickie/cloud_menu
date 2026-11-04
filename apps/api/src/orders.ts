@@ -35,9 +35,9 @@ export function registerOrders(app:FastifyInstance,ctx:Context,limit:(key:string
    if(!await tx.venueAccess(guest.venue_id))throw new Problem(403,'VENUE_SUSPENDED');
    const [session]=await tx.rows('table_sessions',{id:sid,status:'ACTIVE'});if(!session)throw new Problem(409,'SESSION_CLOSED');
    const [saved]=await tx.rows('idempotency_keys',{scope,key});
-   if(saved&&new Date(saved.expires_at).getTime()>Date.now()){if(saved.request_hash!==bodyHash)throw new Problem(422,'IDEMPOTENCY_CONFLICT');return {body:saved.response_body,replay:true};}
+   if(saved&&new Date(saved.expires_at).getTime()>Date.now()){if(saved.response_body?.order?.placed_by!==guest.participant_id||saved.request_hash!==bodyHash)throw new Problem(422,'IDEMPOTENCY_CONFLICT');return {body:saved.response_body,replay:true};}
    const [existing]=await tx.rows('orders',{session_id:sid,client_order_id:input.client_order_id});
-   if(existing){if(existing.request_hash!==clientHash)throw new Problem(422,'IDEMPOTENCY_CONFLICT');const lines=await tx.rows('order_items',{order_id:existing.id});return {body:{order:{...existing,items:lines.map(l=>({...l,name:l.name_snapshot}))},repriced:false},replay:true};}
+   if(existing){if(existing.placed_by!==guest.participant_id||existing.request_hash!==clientHash)throw new Problem(422,'IDEMPOTENCY_CONFLICT');const lines=await tx.rows('order_items',{order_id:existing.id});return {body:{order:{...existing,items:lines.map(l=>({...l,name:l.name_snapshot}))},repriced:false},replay:true};}
    const p=await priced({...ctx,store:tx},guest.venue_id,input);
    if(input.quote_token){const quote=await ctx.tokens.verify(input.quote_token);if(quote.kind!=='quote'||quote.session_id!==sid||quote.request_hash!==clientHash||quote.price_hash!==hash(JSON.stringify(p)))throw new Problem(409,'PRICE_CHANGED','Review the updated total before confirming.');}
    const date=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Dar_es_Salaam',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
@@ -51,11 +51,37 @@ export function registerOrders(app:FastifyInstance,ctx:Context,limit:(key:string
   });
   if(result.seq&&publish)await publish(guest.venue_id,Number(result.seq)).catch(()=>{});reply.code(result.replay?200:201);return result.body;
  });
+ app.patch('/v1/staff/orders/:id/items/:line/status',async request=>{
+  const staff=await ctx.staff(request,['KITCHEN','BAR','WAITER','MANAGER','OWNER']);
+  const {id,line}=z.object({id:z.uuid(),line:z.uuid()}).parse(request.params);
+  const {status}=z.object({status:z.enum(['ACCEPTED','PREPARING','READY','SERVED'])}).strict().parse(request.body);
+  const result=await ctx.store.tx('venue:'+staff.venue_id,async tx=>{
+   const [order]=await tx.rows('orders',{id,venue_id:staff.venue_id});
+   if(!order)throw new Problem(404,'ORDER_NOT_FOUND');
+   const lines=await tx.rows('order_items',{order_id:id}),item=lines.find(i=>i.id===line);
+   if(!item||(['KITCHEN','BAR'].includes(staff.role)&&item.station!==staff.role))throw new Problem(404,'ITEM_NOT_FOUND');
+   if((staff.role==='WAITER'&&status!=='SERVED')||(['KITCHEN','BAR'].includes(staff.role)&&status==='SERVED'))throw new Problem(403,'ROLE_FORBIDDEN');
+   if(item.status===status)return {status,seq:0};
+   const steps=['NEW','ACCEPTED','PREPARING','READY','SERVED'];
+   if(steps.indexOf(item.status)<0||steps.indexOf(status)!==steps.indexOf(item.status)+1)throw new Problem(409,'INVALID_TRANSITION');
+   const timestamp=new Date().toISOString(),change={status,handled_by:staff.id,...(status==='SERVED'?{served_at:timestamp}:{})};
+   await tx.patch('order_items',{id:line,order_id:id},change);item.status=status;
+   const remaining=lines.filter(i=>steps.includes(i.status));
+   const progress=steps[Math.min(...remaining.map(i=>steps.indexOf(i.status)))];
+   await tx.patch('orders',{id,venue_id:staff.venue_id},{status:progress});
+   await tx.add('audit_log',{venue_id:staff.venue_id,actor_type:'STAFF',actor_id:staff.id,action:'ORDER_ITEM_STATUS',entity_type:'order_item',entity_id:line,data:{status}});
+   const event=await tx.add('realtime_events',{venue_id:staff.venue_id,session_id:order.session_id,event_type:'order.status_changed',payload:{participant_id:order.placed_by,order_id:id,status:progress}});
+   return {status,seq:Number(event.seq)};
+  });
+  if(result.seq&&publish)await publish(staff.venue_id,result.seq).catch(()=>{});
+  return {status:result.status};
+ });
  app.get('/v1/staff/orders',async request=>{
   const staff=await ctx.staff(request);await limit(`staff-orders:${staff.id}`,60);
-  const query=z.object({status:z.literal('NEW').optional(),station:z.enum(['KITCHEN','BAR']).optional(),since_seq:z.coerce.number().int().min(0).default(0)}).parse(request.query);
+  const query=z.object({item_status:z.enum(['NEW','ACCEPTED','PREPARING','READY','SERVED','CANCELLED','REJECTED']).optional(),from:z.iso.datetime().optional(),until:z.iso.datetime().optional(),page:z.coerce.number().int().min(1).max(100000).default(1),status:z.enum(['NEW','ACCEPTED','PREPARING','READY','SERVED','CANCELLED']).optional(),station:z.enum(['KITCHEN','BAR']).optional(),since_seq:z.coerce.number().int().min(0).default(0)}).parse(request.query);
   const station=['KITCHEN','BAR'].includes(staff.role as string)?staff.role:query.station;
-  const orders=[];for(const o of await ctx.store.recentOrders(staff.venue_id,station,query.status)){const lines=(await ctx.store.rows('order_items',{order_id:o.id})).filter(l=>!station||l.station===station);if(lines.length){for(const l of lines)l.modifiers=await ctx.store.rows('order_item_modifiers',{order_item_id:l.id});const [session]=await ctx.store.rows('table_sessions',{id:o.session_id,venue_id:staff.venue_id});const [table]=session?await ctx.store.rows('dining_tables',{id:session.table_id,venue_id:staff.venue_id}):[];orders.push({...o,table_label:table?.label??null,items:lines});}}
-  const seq=(await ctx.store.rows('realtime_events',{venue_id:staff.venue_id})).reduce((n,e)=>Math.max(n,Number(e.seq)),0);return {orders,seq};
+  const handlers=new Map((await ctx.store.rows('staff_users',{venue_id:staff.venue_id})).map(s=>[s.id,s.full_name]));
+  const orders=[];for(const o of await ctx.store.recentOrders(staff.venue_id,station,query.status,query.from,query.until,query.page,query.item_status)){const lines=(await ctx.store.rows('order_items',{order_id:o.id})).filter(l=>!station||l.station===station);if(lines.length){for(const l of lines){l.handled_name=handlers.get(l.handled_by)??null;l.modifiers=await ctx.store.rows('order_item_modifiers',{order_item_id:l.id});}const [session]=await ctx.store.rows('table_sessions',{id:o.session_id,venue_id:staff.venue_id});const [table]=session?await ctx.store.rows('dining_tables',{id:session.table_id,venue_id:staff.venue_id}):[];const feedback=['MANAGER','OWNER'].includes(staff.role)?(await ctx.store.rows('service_feedback',{order_id:o.id,venue_id:staff.venue_id}))[0]:undefined;orders.push({...o,feedback,table_label:table?.label??null,items:lines});}}
+  const seq=await ctx.store.eventHead(staff.venue_id);return {orders,seq};
  });
 }

@@ -1,6 +1,6 @@
 import pg from 'pg';
 import type {ReportWindow} from './dashboard.ts';
-export const tables = ['venues','dining_tables','table_sessions','session_participants','menus','categories','items','modifier_groups','modifiers','item_modifier_groups','orders','order_items','order_item_modifiers','idempotency_keys','realtime_events','staff_users','audit_log','owner_accounts','venue_profiles','waiter_calls','bills','bill_splits','bill_shares','bill_share_items','payment_transactions','owner_identities','oauth_flows','inventory_movements','menu_images','subscriptions','platform_admins','platform_settings','venue_access','subscription_actions'] as const;
+export const tables = ['venues','dining_tables','table_sessions','session_participants','menus','categories','items','modifier_groups','modifiers','item_modifier_groups','orders','order_items','order_item_modifiers','idempotency_keys','realtime_events','staff_users','audit_log','owner_accounts','venue_profiles','waiter_calls','bills','bill_splits','bill_shares','bill_share_items','payment_transactions','owner_identities','oauth_flows','inventory_movements','menu_images','subscriptions','platform_admins','platform_settings','venue_access','subscription_actions','service_feedback','venue_halls'] as const;
 export type Table = typeof tables[number];
 export type Row = Record<string,any>;
 export interface Store {
@@ -10,7 +10,7 @@ export interface Store {
  platformOverview(start:string|null):Promise<Row>;
  platformVenues(search:string,page:number,size:number):Promise<Row>;
  venueAudit(venue:string,limit:number):Promise<Row[]>;
- recentOrders(venue:string,station?:string,status?:string):Promise<Row[]>;
+ recentOrders(venue:string,station?:string,status?:string,from?:string,until?:string,page?:number,itemStatus?:string):Promise<Row[]>;
  dashboard(venue:string,window:ReportWindow):Promise<Row>;
  imageStorageBytes(venue:string):Promise<number>;
  expiredSplits(limit:number):Promise<Row[]>;
@@ -54,7 +54,7 @@ export class PostgresStore implements Store {
  (SELECT COALESCE(sum(p.amount_tzs),0) FROM payment_transactions p WHERE p.venue_id=v.id AND p.status='SUCCESS') AS collected_sales_tzs,
  (SELECT COALESCE(sum(i.line_total_tzs),0) FROM order_items i JOIN orders r ON r.id=i.order_id WHERE r.venue_id=v.id AND i.status NOT IN ('REJECTED','CANCELLED')) AS ordered_sales_tzs
  FROM venues v LEFT JOIN owner_accounts o ON o.id=v.owner_account_id LEFT JOIN venue_access a ON a.venue_id=v.id WHERE ${predicate} ORDER BY v.created_at DESC,v.id LIMIT $2 OFFSET $3`,[search,size,(page-1)*size])).rows.map(normalizeRow);return {venues:rows,total,page,size};}
- async recentOrders(venue:string,station?:string,status?:string){return (await this.query("SELECT o.* FROM orders o WHERE o.venue_id=$1 AND ($2::station_type IS NULL OR EXISTS(SELECT 1 FROM order_items i WHERE i.order_id=o.id AND i.station=$2::station_type)) AND ($3::order_status IS NULL OR o.status=$3::order_status) ORDER BY o.created_at DESC,o.id LIMIT 200",[venue,station??null,status??null])).rows.map(normalizeRow);}
+ async recentOrders(venue:string,station?:string,status?:string,from?:string,until?:string,page=1,itemStatus?:string){return (await this.query("SELECT o.* FROM orders o WHERE o.venue_id=$1 AND ($2::station_type IS NULL OR EXISTS(SELECT 1 FROM order_items i WHERE i.order_id=o.id AND i.station=$2::station_type)) AND ($3::order_status IS NULL OR o.status=$3::order_status) AND ($4::timestamptz IS NULL OR o.created_at>=$4) AND ($5::timestamptz IS NULL OR o.created_at<$5) AND ($7::order_item_status IS NULL OR EXISTS(SELECT 1 FROM order_items l WHERE l.order_id=o.id AND l.status=$7 AND ($2::station_type IS NULL OR l.station=$2))) ORDER BY o.created_at DESC,o.id LIMIT 200 OFFSET $6",[venue,station??null,status??null,from??null,until??null,(page-1)*200,itemStatus??null])).rows.map(normalizeRow);}
  async dashboard(venue:string,w:ReportWindow){return (await this.query('SELECT cloud_menu_dashboard($1,$2,$3,$4,$5,$6,$7) AS report',[venue,w.start,w.end,w.previousStart,w.previousEnd,w.comparisonStart,w.comparisonEnd])).rows[0].report;}
  async imageStorageBytes(venue:string){const value=Number((await this.query('SELECT COALESCE(sum(octet_length(content)),0) AS bytes FROM menu_images WHERE venue_id=$1',[venue])).rows[0].bytes);if(!Number.isSafeInteger(value))throw Error('Invalid image storage total');return value;}
  private table(table:Table){if(!tables.includes(table))throw new Error('Unknown table');return ident(table);}

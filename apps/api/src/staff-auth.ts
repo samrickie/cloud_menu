@@ -7,10 +7,12 @@ export function registerStaffAuth(app:FastifyInstance,ctx:Context,limit:(key:str
  app.get('/v1/staff/me',async req=>{const s=await ctx.staff(req),[v]=await ctx.store.rows('venues',{id:s.venue_id});return {staff:{id:s.id,role:s.role,full_name:s.full_name},venue:{name:v.name,slug:v.slug}};});
  app.post('/v1/staff/auth/login',async request=>{
   await limit(`login:${request.ip}`,30);
-  const input=z.object({venue_code:z.string().min(1).max(80),staff_id:z.uuid().optional(),pin:z.string().regex(/^\d{4,12}$/)}).parse(request.body);
+  const input=z.object({venue_code:z.string().min(1).max(80),staff_id:z.string().trim().min(1).max(140).optional(),pin:z.string().regex(/^\d{4,12}$/)}).parse(request.body);
   const [venue]=await ctx.store.rows('venues',{slug:input.venue_code.toLowerCase()});if(!venue)throw new Problem(401,'LOGIN_INVALID');
   const users=await ctx.store.rows('staff_users',{venue_id:venue.id,is_active:true});
-  const user=input.staff_id?users.find(u=>u.id===input.staff_id):users.length===1?users[0]:undefined;
+  const identifier=input.staff_id?.toLowerCase();
+  const matches=identifier?users.filter(u=>u.id===identifier||u.full_name?.toLowerCase()===identifier||(u.full_name+' #'+u.id.slice(0,8)).toLowerCase()===identifier):users;
+  const user=matches.length===1?matches[0]:undefined;
   if(!user)throw new Problem(401,'LOGIN_INVALID','Check venue, staff identifier and PIN.');
   const result=await ctx.store.tx(`staff-login:${user.id}`,async tx=>{
    const [u]=await tx.rows('staff_users',{id:user.id,is_active:true});const now=Date.now();if(u.locked_until&&new Date(u.locked_until).getTime()>now)return {locked:true};

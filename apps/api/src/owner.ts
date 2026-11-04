@@ -64,6 +64,7 @@ export function registerOwner(app:FastifyInstance,ctx:Context,limit:(key:string,
    for(const [i,[name_en,name_sw,default_station]] of presets[input.venue_type].entries())await tx.add('categories',{id:randomUUID(),menu_id:menu.id,name_en,name_sw,default_station,sort_order:i,is_active:true});
    let [sampleCategory]=await tx.rows('categories',{menu_id:menu.id});if(!sampleCategory)sampleCategory=await tx.add('categories',{id:randomUUID(),menu_id:menu.id,name_en:'Sample data',name_sw:'Data ya mfano',is_active:true,sort_order:0});
    await tx.add('items',{id:randomUUID(),venue_id:v.id,category_id:sampleCategory.id,name_en:'Sample data — replace before publishing',name_sw:'Data ya mfano — badilisha kabla ya kuchapisha',price_tzs:0,station:'KITCHEN',is_active:true,is_available:false,is_sample:true,sort_order:0});
+   await tx.add('venue_halls',{id:randomUUID(),venue_id:v.id,name:'Main hall'});
    await tx.add('dining_tables',{id:randomUUID(),venue_id:v.id,label:'Table 1',zone:'Main hall',seats:4,qr_code:randomBytes(16).toString('base64url'),qr_key_version:1,qr_format:2,is_active:true,is_sample:true});
    return {v,s};
   });reply.code(201);return {venue:publicVenue(result.v),staff_token:await staffToken(result.s),category_defaults:presets[input.venue_type].map(([name_en,name_sw,station])=>({name_en,name_sw,station}))};
