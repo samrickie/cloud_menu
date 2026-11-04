@@ -22,13 +22,13 @@ test('owner menu photos, automatic inventory, real dashboard and manager/kitchen
 
  const guestContext=await browser.newContext(),guest=await guestContext.newPage();await guest.goto(tables.tables[0].url);await expect(guest.getByText('Freshly grilled with rice and seasonal vegetables',{exact:true})).toBeVisible();await guest.getByRole('button',{name:'Add Sample data grilled meal',exact:true}).click();await expect(guest.locator('.item-detail-photo')).toBeVisible();await guest.getByLabel('Quantity',{exact:true}).fill('2');await guest.getByLabel('Message to the kitchen / bar',{exact:true}).fill('Please grill well, sauce on the side');await guest.getByRole('button',{name:/Add to cart/}).click();await guest.getByRole('button',{name:/View cart/}).click();await guest.getByRole('button',{name:'Send order',exact:true}).click();await expect(guest.getByRole('status').filter({hasText:'Order received'})).toBeVisible();
 
- await page.getByRole('button',{name:'Dashboard',exact:true}).click();await page.getByRole('button',{name:'Refresh dashboard',exact:true}).click();await expect(page.getByTestId('kpi-orders')).toContainText('1');await expect(page.getByTestId('ordered-sales')).toHaveText('TZS 24,690');await expect(page.getByTestId('kpi-revenue_tzs').locator('strong')).toHaveText('TZS 0');await expect(page.getByRole('img',{name:'Orders by hour',exact:true})).toBeVisible();await expect(page.getByText('No successful payments in this period.',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Dashboard',exact:true}).click();await page.getByRole('button',{name:'Refresh dashboard',exact:true}).click();await expect(page.getByTestId('kpi-orders')).toContainText('1');await expect(page.getByTestId('ordered-sales')).toHaveText('TZS 24,690');await expect(page.getByTestId('kpi-revenue_tzs').locator('strong')).toHaveText('TZS 0');await expect(page.getByRole('img',{name:'Orders by hour',exact:true})).toBeVisible();await expect(page.locator('article').filter({has:page.getByRole('heading',{name:'Payment mix',exact:true})}).getByText('No successful payments in this period.',{exact:true})).toBeVisible();
 
  for(const width of [360,1440]){await page.setViewportSize({width,height:1000});await page.screenshot({path:`.artifacts/operations-dashboard-${width}.png`,fullPage:true});}
 
  const csv=page.waitForEvent('download');await page.getByRole('button',{name:'Export CSV',exact:true}).click();expect((await csv).suggestedFilename()).toBe('cloud-menu-dashboard.csv');
 
- async function signIn(p:Page,id:string){await p.goto('/staff/');await p.getByLabel('Venue code',{exact:true}).fill(slug);await p.getByLabel('Staff identifier',{exact:true}).fill(id);await p.getByLabel('PIN',{exact:true}).fill('654321');await p.getByRole('button',{name:'Sign in',exact:true}).click();}
+ async function signIn(p:Page,id:string){await p.goto('/staff/');await p.getByLabel('Sign in as').selectOption(id===manager.id?'MANAGER':'KITCHEN');await p.getByLabel('Venue code',{exact:true}).fill(slug);await p.getByLabel('Staff name or ID',{exact:true}).fill(id);await p.getByLabel('PIN',{exact:true}).fill('654321');await p.getByRole('button',{name:'Sign in',exact:true}).click();}
 
  const managerContext=await browser.newContext({viewport:{width:360,height:900}}),mp=await managerContext.newPage();await signIn(mp,manager.id);await expect(mp.getByRole('heading',{name:'Venue dashboard',exact:true})).toBeVisible();await expect(mp.getByTestId('ordered-sales')).toHaveText('TZS 24,690');await expect(mp.getByRole('button',{name:'Team',exact:true})).toHaveCount(0);expect(await mp.evaluate(()=>document.documentElement.scrollWidth)).toBe(360);await mp.screenshot({path:'.artifacts/operations-manager-360.png',fullPage:true});
 
@@ -36,7 +36,7 @@ test('owner menu photos, automatic inventory, real dashboard and manager/kitchen
 
  await kp.locator('header').getByRole('combobox').selectOption('en');
  const mealRow=kp.getByRole('row').filter({hasText:'Sample data grilled meal'});
- for(const stage of ['Accepted','Preparing','Ready'])await mealRow.getByRole('button',{name:stage,exact:true}).click();
+ for(const stage of ['Accepted','Preparing','Ready'])await mealRow.getByRole('button',{name:'Sample data grilled meal: '+stage,exact:true}).click();
  await guest.getByRole('button',{name:'Call waiter',exact:true}).click();
  await guest.getByLabel('Optional message').fill('Sample data water refill');
  await guest.getByRole('button',{name:'Send waiter request'}).click();
@@ -45,11 +45,11 @@ test('owner menu photos, automatic inventory, real dashboard and manager/kitchen
  await refill.getByRole('button',{name:'On my way'}).click();
  await expect(guest.getByText('On my way',{exact:true})).toBeVisible();
  await refill.getByRole('button',{name:'Mark resolved'}).click();
- await mp.getByRole('row').filter({hasText:'Sample data grilled meal'}).getByRole('button',{name:'Served',exact:true}).click();
+ await mp.getByRole('row').filter({hasText:'Sample data grilled meal'}).getByRole('button',{name:'Sample data grilled meal: Served',exact:true}).click();
  await expect(guest.getByRole('heading',{name:'Rate your service'})).toBeVisible({timeout:10000});
- await guest.getByLabel('Waiter service',{exact:true}).selectOption('5');
- await guest.getByLabel('Sample data grilled meal',{exact:true}).selectOption('4');
- await guest.getByLabel('Comment for the manager (optional)').fill('Sample private service feedback');
+ await guest.getByRole('group',{name:'Waiter service'}).getByRole('radio',{name:'5 of 5 stars'}).check();
+ await guest.getByRole('group',{name:'Sample data grilled meal'}).getByRole('radio',{name:'4 of 5 stars'}).check();
+ await guest.getByLabel('Comment (optional)').fill('Sample private service feedback');
  await guest.getByRole('button',{name:'Submit rating'}).click();
  await expect(guest.getByText('Thank you for rating your service.')).toBeVisible();
  const second=await browser.newContext(),newGuest=await second.newPage();await newGuest.goto(tables.tables[0].url);

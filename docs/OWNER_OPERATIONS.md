@@ -62,3 +62,13 @@ This update does not activate a payment aggregator, payout verification, email v
 6. In **Menu > Add custom category**, name the category and choose its default station. An individual item can override that route. In **Tables & QR > Manage halls**, add or rename a hall. Renaming moves the hall's existing tables together. Select a table and use **Hall or zone > Save hall** to move just that table. Its existing QR stays valid.
 7. Once an order is served, its guest can rate waiter service and each served kitchen line from 1 to 5, with an optional private comment. Owners and managers see feedback on the order. Available dishes with actual ratings appear under **Most rated food**, ordered by number of reviews and then average score. Repeat submission of the same order's feedback counts once.
 8. **Your orders** and waiter messages belong to the participant on the guest's device. Returning with the same browser storage and valid device proof restores that participant while the table session is open. Clearing storage creates a new identity. **Table bill** remains shared for splitting the bill.
+
+## Sign-in, tickets, and cash receipts
+
+1. Open **/login**. Select Owner for account credentials or social sign-in. Managers, waiters, kitchen, and bar staff select their assigned role and enter the venue code, staff name or identifier, and PIN.
+2. When creating a venue, select **Allow guests to tip** only if the venue accepts tips. This records a policy; it does not add a tip to a bill or activate online payment processing.
+3. A guest sends one cart. Staff see one ticket per station for that order. Use the order number to expand ticket details. Update each item when its preparation or service actually changes.
+4. Each guest sees their own order lines and notes. The total and outstanding balance belong to the table. To split by item, each guest claims their own items on their own device. Equal splitting is also available.
+5. To record cash, have the guest confirm and lock a split first (one payer for a single payment). In **Orders**, expand the order number. After physically receiving the money, choose **Record cash** for the matching share, verify the displayed amount and payer, and confirm. The same share cannot be collected twice. An expired lock must be renewed.
+6. On **Dashboard**, refresh or wait up to 45 seconds. **Collected revenue** and **Revenue by hour** include successful payments, counted at receipt time in Dar es Salaam. **Ordered sales** includes orders before payment. Expand the collected-revenue card for the payment mix. Waiter response time is shown in minutes.
+7. After service, the guest can rate the waiter and served food separately with stars and add a comment. Comments remain private to authorized venue management.

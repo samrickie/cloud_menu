@@ -23,7 +23,7 @@ const presets:Record<string,[string,string,string][]>= {
 const day=z.object({opens:z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),closes:z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),closed:z.boolean().default(false)}).strict();
 const siteInput=z.object({theme:z.enum(['noir','ivory','bordeaux','sapphire','custom']).optional(),template:z.enum(['lounge','cafe','grill','minimal']).optional(),brand_colour:z.string().regex(/^#[a-f0-9]{6}$/i).nullable().optional(),primary_text:z.string().regex(/^#[a-f0-9]{6}$/i).nullable().optional(),languages:z.array(z.enum(['en','sw'])).min(1).max(2).refine(v=>new Set(v).size===v.length).optional(),sections:z.array(z.enum(['Menu','Offers','Gallery','Reviews','Contact'])).min(1).max(5).refine(v=>new Set(v).size===v.length&&v.includes('Menu')).optional(),welcome_en:z.string().trim().max(500).optional(),welcome_sw:z.string().trim().max(500).optional(),hours:z.record(z.enum(['mon','tue','wed','thu','fri','sat','sun']),day).optional(),logo_key:z.null().optional(),cover_key:z.null().optional()}).strict();
 const publicVenue=(v:Row)=>({id:v.id,name:v.name,slug:v.slug,status:v.status,currency:v.currency});
-const publicSite=(p:Row)=>({venue_type:p.venue_type,theme:p.theme,template:p.template,brand_colour:p.brand_colour,primary_text:p.primary_text,languages:p.languages,sections:p.sections,welcome_en:p.welcome_en,welcome_sw:p.welcome_sw,hours:p.hours,logo_key:p.logo_key,cover_key:p.cover_key,is_sample:p.is_sample});
+const publicSite=(p:Row)=>({tips_enabled:p.tips_enabled??false,venue_type:p.venue_type,theme:p.theme,template:p.template,brand_colour:p.brand_colour,primary_text:p.primary_text,languages:p.languages,sections:p.sections,welcome_en:p.welcome_en,welcome_sw:p.welcome_sw,hours:p.hours,logo_key:p.logo_key,cover_key:p.cover_key,is_sample:p.is_sample});
 
 export function registerOwner(app:FastifyInstance,ctx:Context,limit:(key:string,max:number)=>Promise<void>,registrationEnabled=true){
  const accountToken=(a:Row)=>ctx.tokens.sign({kind:'account',account_id:a.id,auth_version:a.auth_version},3600);
@@ -52,14 +52,14 @@ export function registerOwner(app:FastifyInstance,ctx:Context,limit:(key:string,
   if(!result)throw new Problem(401,'LOGIN_INVALID');return {account_token:await accountToken(result),venues:(await ctx.store.rows('venues',{owner_account_id:result.id})).map(publicVenue)};
  });
  app.post('/v1/owner/venues',async(req,reply)=>{
-  await limit(`owner-venue:${req.ip}`,10);const a=await account(req);const input=z.object({name:z.string().trim().min(2).max(120).regex(/^[^\p{Cc}]+$/u),slug,venue_type:z.enum(['RESTAURANT','BAR','LOUNGE','CAFE','FAST_FOOD','HOTEL','CUSTOM'])}).strict().parse(req.body);
+  await limit(`owner-venue:${req.ip}`,10);const a=await account(req);const input=z.object({name:z.string().trim().min(2).max(120).regex(/^[^\p{Cc}]+$/u),slug,tips_enabled:z.boolean().default(false),venue_type:z.enum(['RESTAURANT','BAR','LOUNGE','CAFE','FAST_FOOD','HOTEL','CUSTOM'])}).strict().parse(req.body);
   const pin=await passwordHash(randomBytes(32).toString('hex'),12);
   const result=await ctx.store.tx('venue-slug:'+input.slug,async tx=>{
    if((await tx.rows('venues',{slug:input.slug})).length)throw new Problem(409,'SLUG_UNAVAILABLE');
    const v=await tx.add('venues',{id:randomUUID(),name:input.name,slug:input.slug,owner_account_id:a.id,status:'TRIAL',currency:'TZS',max_participants:20});
    await initialTrial(tx,v.id);
    const s=await tx.add('staff_users',{id:randomUUID(),venue_id:v.id,owner_account_id:a.id,full_name:a.full_name,role:'OWNER',pin_hash:pin,is_active:true,failed_attempts:0});
-   await tx.add('venue_profiles',{venue_id:v.id,venue_type:input.venue_type,theme:'noir',template:'lounge',brand_colour:null,primary_text:null,languages:['en','sw'],sections:['Menu','Offers','Gallery','Reviews','Contact'],welcome_en:'',welcome_sw:'',hours:{},logo_key:null,cover_key:null,is_published:false,is_sample:false});
+   await tx.add('venue_profiles',{venue_id:v.id,venue_type:input.venue_type,tips_enabled:input.tips_enabled,theme:'noir',template:'lounge',brand_colour:null,primary_text:null,languages:['en','sw'],sections:['Menu','Offers','Gallery','Reviews','Contact'],welcome_en:'',welcome_sw:'',hours:{},logo_key:null,cover_key:null,is_published:false,is_sample:false});
    const menu=await tx.add('menus',{id:randomUUID(),venue_id:v.id,name:'Menu',is_active:true,version:1});
    for(const [i,[name_en,name_sw,default_station]] of presets[input.venue_type].entries())await tx.add('categories',{id:randomUUID(),menu_id:menu.id,name_en,name_sw,default_station,sort_order:i,is_active:true});
    let [sampleCategory]=await tx.rows('categories',{menu_id:menu.id});if(!sampleCategory)sampleCategory=await tx.add('categories',{id:randomUUID(),menu_id:menu.id,name_en:'Sample data',name_sw:'Data ya mfano',is_active:true,sort_order:0});

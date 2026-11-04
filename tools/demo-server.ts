@@ -6,7 +6,8 @@ import {randomUUID} from 'node:crypto';
 import {registerFrontends} from '../apps/api/src/frontends.ts';
 // Public disposable credentials for loopback browser tests only; never used by production.
 const demoAdmin={email:'sample-platform-admin@example.test',password:'Sample-only-admin-password-123'};
-const f=await fixture({guestOrigin:'http://127.0.0.1:4173',platformAdminEmails:[demoAdmin.email]});
+const port=Number(process.env.TEST_PORT??4173),origin='http://127.0.0.1:'+port;
+const f=await fixture({guestOrigin:origin,platformAdminEmails:[demoAdmin.email]});
 await f.store.add('owner_accounts',{id:randomUUID(),email:demoAdmin.email,full_name:'Sample data platform admin',password_hash:await hash(demoAdmin.password,12),email_verified_at:new Date().toISOString(),is_active:true,auth_version:1,failed_attempts:0});
 f.app.get('/__demo/platform',async()=>demoAdmin);
 const menu=await f.store.add('menus',{id:randomUUID(),venue_id:f.venue.id,is_active:true,name:'DEMO menu',version:1});
@@ -17,6 +18,6 @@ for(const [index,name]of ['Drinks','Grill','Snacks'].entries()){
 }
 f.app.get('/__demo/qr',async()=>{const table=await f.store.add('dining_tables',{...f.table,id:randomUUID(),qr_code:randomUUID()});return {url:`/?qr=${encodeURIComponent(signQR(table.qr_code,1,secrets.qr))}`};});
 await registerFrontends(f.app);
-await f.app.listen({host:'127.0.0.1',port:4173});
-console.log('DEMO ONLY: http://127.0.0.1:4173/?qr='+encodeURIComponent(f.qr));
+await f.app.listen({host:'127.0.0.1',port});
+console.log('DEMO ONLY: '+origin+'/?qr='+encodeURIComponent(f.qr));
 for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>void f.app.close().then(()=>process.exit(0)));

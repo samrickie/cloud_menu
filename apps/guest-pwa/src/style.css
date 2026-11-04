@@ -1,2 +1,4 @@
 @import "../../../packages/ui/src/tokens.css";
 @import "./guest-layout.css";
+
+.star-rating{border:0;margin:0;padding:0}.star-rating>div{display:flex;flex-wrap:wrap}.star-rating label{position:relative;display:grid;place-items:center;min-width:44px;min-height:44px;cursor:pointer}.star-rating input{position:absolute;opacity:0}.star-rating span{font-size:1.8rem;color:var(--cm-highlight)}.star-rating input:focus-visible+span{outline:2px solid currentColor}

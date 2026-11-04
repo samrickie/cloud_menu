@@ -5,6 +5,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {stat} from 'node:fs/promises';
 export async function registerFrontends(app:FastifyInstance,appsRoot=fileURLToPath(new URL('../../',import.meta.url))){
+ app.get('/login',async(_req,reply)=>reply.redirect('/owner/?login'));
  const builds=[{name:'admin',prefix:'/admin/'},{name:'owner',prefix:'/owner/'},{name:'staff',prefix:'/staff/'},{name:'guest-pwa',prefix:'/'}];
  for(const build of builds){if(!(await stat(path.join(appsRoot,build.name,'dist','index.html'))).isFile())throw Error('Missing frontend build: '+build.name);}
  app.addHook('onSend',async(_request,reply)=>{reply.header('Referrer-Policy','no-referrer');});

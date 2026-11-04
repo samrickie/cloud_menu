@@ -26,15 +26,34 @@ export async function syncBill(tx:Store,venueId:string,sessionId:string){
  const source_hash=hash(JSON.stringify({financial,rates}));let bill=previous,seq:number|undefined;
  if(previous&&Number(previous.paid_tzs)>amounts.total_tzs)throw new Problem(409,'REFUND_REVIEW_REQUIRED','A paid bill cannot be reduced without an approved refund.');
  if(!previous){bill=await tx.add('bills',{id:randomUUID(),session_id:sessionId,venue_id:venueId,...amounts,...rates,source_hash,paid_tzs:0,status:'OPEN',version:1});}
- else if(previous.source_hash!==source_hash){const change={...amounts,source_hash,version:previous.version+1};await tx.patch('bills',{id:previous.id,venue_id:venueId},change);bill={...previous,...change};}
+ else if(previous.source_hash!==source_hash){const change={...amounts,...(previous.status==='SETTLED'&&amounts.total_tzs>previous.paid_tzs?{status:'OPEN'}:{}),source_hash,version:previous.version+1};await tx.patch('bills',{id:previous.id,venue_id:venueId},change);bill={...previous,...change};}
  if(!previous||previous.source_hash!==source_hash){const event=await tx.add('realtime_events',{venue_id:venueId,session_id:sessionId,event_type:'bill.updated',payload:{bill_id:bill!.id,bill_version:bill!.version,total_tzs:bill!.total_tzs,balance_tzs:tzs(bill!.total_tzs-bill!.paid_tzs)}});seq=Number(event.seq);}
  return {bill:bill!,items,seq};
 }
 export function registerBilling(app:FastifyInstance,ctx:Context,publish:(venue:string,seq:number)=>Promise<void>){
+ app.post('/v1/staff/shares/:id/cash',async req=>{
+  const staff=await ctx.staff(req,['OWNER','MANAGER','WAITER']),venue_id=staff.venue_id,id=idParams(req.params);
+  const result=await ctx.store.tx('venue:'+venue_id,async tx=>{
+   const [share]=await tx.rows('bill_shares',{id,venue_id});if(!share)throw new Problem(404,'SHARE_NOT_FOUND');
+   const scope={venue_id,session_id:share.session_id},split=await tx.lockSplit(venue_id,scope.session_id,share.split_id);
+   const attempts=await tx.rows('payment_transactions',{venue_id,share_id:id});
+   if(attempts.some(p=>p.provider==='CASH'&&p.status==='SUCCESS'))return {seq:0};
+   if(!split||split.status!=='LOCKED'||Date.parse(split.lock_expires_at)<=Date.now()||share.status!=='UNPAID'||share.amount_tzs<=0||attempts.some(p=>['PENDING','INITIATED','SUCCESS'].includes(p.status)))throw new Problem(409,'SHARE_NOT_PAYABLE');
+   const [bill]=await tx.rows('bills',{id:split.bill_id,...scope});if(!bill||bill.status!=='LOCKED'||bill.total_tzs-bill.paid_tzs<share.amount_tzs)throw new Problem(409,'BILL_CHANGED');
+   const now=new Date().toISOString(),paid=tzs(bill.paid_tzs+share.amount_tzs);
+   await tx.add('payment_transactions',{id:randomUUID(),share_id:id,venue_id,attempt_no:1+Math.max(0,...attempts.map(p=>p.attempt_no)),provider:'CASH',amount_tzs:share.amount_tzs,status:'SUCCESS',idempotency_key:'cash:'+id,our_reference:'cash:'+id,created_at:now,expires_at:now,completed_at:now});
+   await tx.patch('bill_shares',{id,...scope},{status:'PAID',paid_at:now});
+   const done=(await tx.rows('bill_shares',{split_id:split.id,...scope})).every(s=>s.status==='PAID'||s.amount_tzs===0);
+   if(done)await tx.patch('bill_splits',{id:split.id,...scope},{status:'SETTLED'});
+   await tx.patch('bills',{id:bill.id,...scope},{paid_tzs:paid,status:paid===bill.total_tzs?'SETTLED':done?'OPEN':'LOCKED',version:bill.version+1});
+   await tx.add('audit_log',{venue_id,actor_type:'STAFF',actor_id:staff.id,action:'CASH_RECEIVED',entity_type:'bill_share',entity_id:id,data:{amount_tzs:share.amount_tzs}});
+   const event=await tx.add('realtime_events',{...scope,event_type:'bill.updated',payload:{bill_id:bill.id,bill_version:bill.version+1,balance_tzs:bill.total_tzs-paid}});return {seq:Number(event.seq)};
+  });if(result.seq)await publish(venue_id,result.seq).catch(()=>{});return {recorded:true};
+ });
  app.get('/v1/sessions/:id/bill',async request=>{
   const sid=idParams(request.params),guest=await ctx.guest(request,sid);
   const result=await ctx.store.tx(`venue:${guest.venue_id}`,async tx=>{const [session]=await tx.rows('table_sessions',{id:sid,venue_id:guest.venue_id,status:'ACTIVE'});if(!session)throw new Problem(409,'SESSION_CLOSED');const snapshot=await syncBill(tx,guest.venue_id,sid),current=await activeSplit(tx,guest.venue_id,sid,snapshot.bill.id);const [bill]=await tx.rows('bills',{id:snapshot.bill.id,venue_id:guest.venue_id,session_id:sid});const remaining=await remainingBillItems(tx,bill,snapshot.items);return {...snapshot,items:remaining.items,bill,seq:await tx.eventHead(guest.venue_id),split:current?await splitView(tx,current):null};});
   if(result.seq)await publish(guest.venue_id,result.seq).catch(()=>{});
-  const {bill,items}=result;const reserved=result.split?.status==='LOCKED'?result.split.shares.filter(s=>s.status!=='PAID'&&s.status!=='VOID').reduce((n,s)=>n+s.amount_tzs,0):0;return {bill:{id:bill.id,session_id:sid,currency:'TZS',version:bill.version,status:bill.status,subtotal_tzs:bill.subtotal_tzs,service_charge_tzs:bill.service_charge_tzs,tax_tzs:bill.tax_tzs,total_tzs:bill.total_tzs,paid_tzs:bill.paid_tzs,balance_tzs:tzs(bill.total_tzs-bill.paid_tzs),pending_balance_tzs:result.split?.status==='LOCKED'?tzs(bill.total_tzs-bill.paid_tzs-reserved):0,service_charge_bp:bill.service_charge_bp,vat_rate_bp:bill.vat_rate_bp,prices_include_vat:bill.prices_include_vat,items,split:result.split?{...result.split,requires_recalculation:result.split.status==='OPEN'&&result.split.bill_version!==bill.version}:null}};
+  const {bill,items}=result;const reserved=result.split?.status==='LOCKED'?result.split.shares.filter(s=>s.status!=='PAID'&&s.status!=='VOID').reduce((n,s)=>n+s.amount_tzs,0):0;return {bill:{id:bill.id,session_id:sid,currency:'TZS',version:bill.version,status:bill.status,subtotal_tzs:bill.subtotal_tzs,service_charge_tzs:bill.service_charge_tzs,tax_tzs:bill.tax_tzs,total_tzs:bill.total_tzs,paid_tzs:bill.paid_tzs,balance_tzs:tzs(bill.total_tzs-bill.paid_tzs),pending_balance_tzs:result.split?.status==='LOCKED'?tzs(bill.total_tzs-bill.paid_tzs-reserved):0,service_charge_bp:bill.service_charge_bp,vat_rate_bp:bill.vat_rate_bp,prices_include_vat:bill.prices_include_vat,items:items.filter(i=>i.participant_id===guest.participant_id),split:result.split?{...result.split,requires_recalculation:result.split.status==='OPEN'&&result.split.bill_version!==bill.version}:null}};
  });
 }
