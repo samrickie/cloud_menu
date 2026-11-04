@@ -14,7 +14,7 @@ test('owner menu photos, automatic inventory, real dashboard and manager/kitchen
 
  await page.getByRole('button',{name:'Team',exact:true}).click();async function createStaff(name:string,role:string){await page.getByLabel('Full name',{exact:true}).fill(name);await page.getByLabel('Role',{exact:true}).selectOption(role);await page.getByLabel('Staff PIN',{exact:true}).fill('654321');const pending=page.waitForResponse(r=>r.url().endsWith('/v1/owner/staff')&&r.request().method()==='POST');await page.getByRole('button',{name:'Create staff',exact:true}).click();const s=(await(await pending).json()).staff;await expect(page.locator('.ops-list')).toContainText(name);return s;}
 
- const manager=await createStaff('Sample data Manager','MANAGER'),kitchen=await createStaff('Sample data Chef','KITCHEN');
+ const manager=await createStaff('Sample data Manager','MANAGER'),kitchen=await createStaff('Sample data Chef','KITCHEN'),waiter=await createStaff('Sample data Waiter','WAITER');
 
  const tables=await(await request.post('/v1/admin/tables/range',{headers,data:{from:1,to:1,prefix:'Sample',seats:4,zone:'Sample data'}})).json();await page.getByRole('button',{name:'Dashboard',exact:true}).click();await expect(page.getByTestId('kpi-orders')).toContainText('0');
 
@@ -28,7 +28,7 @@ test('owner menu photos, automatic inventory, real dashboard and manager/kitchen
 
  const csv=page.waitForEvent('download');await page.getByRole('button',{name:'Export CSV',exact:true}).click();expect((await csv).suggestedFilename()).toBe('cloud-menu-dashboard.csv');
 
- async function signIn(p:Page,id:string){await p.goto('/staff/');await p.getByLabel('Sign in as').selectOption(id===manager.id?'MANAGER':'KITCHEN');await p.getByLabel('Venue code',{exact:true}).fill(slug);await p.getByLabel('Staff name or ID',{exact:true}).fill(id);await p.getByLabel('PIN',{exact:true}).fill('654321');await p.getByRole('button',{name:'Sign in',exact:true}).click();}
+ async function signIn(p:Page,id:string){await p.goto('/staff/');await p.getByLabel('Sign in as').selectOption(id===manager.id?'MANAGER':id===waiter.id?'WAITER':'KITCHEN');await p.getByLabel('Venue code',{exact:true}).fill(slug);await p.getByLabel('Staff name or ID',{exact:true}).fill(id);await p.getByLabel('PIN',{exact:true}).fill('654321');await p.getByRole('button',{name:'Sign in',exact:true}).click();}
 
  const managerContext=await browser.newContext({viewport:{width:360,height:900}}),mp=await managerContext.newPage();await signIn(mp,manager.id);await expect(mp.getByRole('heading',{name:'Venue dashboard',exact:true})).toBeVisible();await expect(mp.getByTestId('ordered-sales')).toHaveText('TZS 24,690');await expect(mp.getByRole('button',{name:'Team',exact:true})).toHaveCount(0);expect(await mp.evaluate(()=>document.documentElement.scrollWidth)).toBe(360);await mp.screenshot({path:'.artifacts/operations-manager-360.png',fullPage:true});
 
@@ -45,12 +45,12 @@ test('owner menu photos, automatic inventory, real dashboard and manager/kitchen
  await refill.getByRole('button',{name:'On my way'}).click();
  await expect(guest.getByText('On my way',{exact:true})).toBeVisible();
  await refill.getByRole('button',{name:'Mark resolved'}).click();
- await mp.getByRole('row').filter({hasText:'Sample data grilled meal'}).getByRole('button',{name:'Sample data grilled meal: Served',exact:true}).click();
+ const wp=await browser.newPage();await signIn(wp,waiter.id);await expect(wp.getByRole('heading',{name:'Ready for pickup'})).toBeVisible();await wp.getByRole('button',{name:'Delivered to table'}).click();await wp.close();
  await expect(guest.getByRole('heading',{name:'Rate your service'})).toBeVisible({timeout:10000});
  await guest.getByRole('group',{name:'Waiter service'}).getByRole('radio',{name:'5 of 5 stars'}).check();
  await guest.getByRole('group',{name:'Sample data grilled meal'}).getByRole('radio',{name:'4 of 5 stars'}).check();
  await guest.getByLabel('Comment (optional)').fill('Sample private service feedback');
- await guest.getByRole('button',{name:'Submit rating'}).click();
+ await expect(guest.getByRole('button',{name:'Submit rating'})).toBeVisible();await guest.getByRole('button',{name:'Submit rating'}).click();
  await expect(guest.getByText('Thank you for rating your service.')).toBeVisible();
  const second=await browser.newContext(),newGuest=await second.newPage();await newGuest.goto(tables.tables[0].url);
  await expect(newGuest.getByRole('heading',{name:'Most rated food'})).toBeVisible();

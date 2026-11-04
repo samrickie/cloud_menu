@@ -27,7 +27,7 @@ function StaffApp(){
 
  const [token,setToken]=useState(sessionStorage.getItem('staff_token')??''),[role,setRole]=useState(''),[locale,setLocale]=useState<Locale>('en'),[tab,setTab]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),[venue,setVenue]=useState<Data>();const t=opText(locale),manager=['MANAGER','OWNER'].includes(role);
 
- useEffect(()=>{if(!token)location.replace('/owner/?login');},[token]);
+ useEffect(()=>{if(!token)location.replace('/login');},[token]);
  function logout(){sessionStorage.removeItem('staff_token');sessionStorage.removeItem('staff_role');setToken('');setRole('');setVenue(undefined);setTab('');}
 
  useEffect(()=>{document.documentElement.lang=locale;},[locale]);

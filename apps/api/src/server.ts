@@ -9,7 +9,7 @@ import {socialFromEnv} from './social-providers.ts';
 import {startSplitJobs} from './jobs.ts';
 import {registerReadiness} from './readiness.ts';
 import {registerFrontends} from './frontends.ts';
-const env=z.object({DATABASE_URL:z.string().min(1),REDIS_URL:z.string().min(1),TOKEN_SECRET:z.string().min(64),QR_SECRET:z.string().min(64),GUEST_ORIGIN:z.url(),PORT:z.coerce.number().default(3000),UPLOAD_DIR:z.string().default('./uploads'),OWNER_REGISTRATION_ENABLED:z.enum(['true','false']).default('false'),ORDERING_ENABLED:z.enum(['true','false']).default('false')}).parse({...process.env,GUEST_ORIGIN:process.env.GUEST_ORIGIN??process.env.RENDER_EXTERNAL_URL});
+const env=z.object({DATABASE_URL:z.string().min(1),REDIS_URL:z.string().min(1),TOKEN_SECRET:z.string().min(64),QR_SECRET:z.string().min(64),GUEST_ORIGIN:z.url(),PORT:z.coerce.number().default(3000),UPLOAD_DIR:z.string().default('./uploads'),OWNER_REGISTRATION_ENABLED:z.enum(['true','false']).default('true'),ORDERING_ENABLED:z.enum(['true','false']).default('false')}).parse({...process.env,GUEST_ORIGIN:process.env.GUEST_ORIGIN??process.env.RENDER_EXTERNAL_URL});
 const pool=new pg.Pool({connectionString:env.DATABASE_URL,max:10});const redis=new Redis(env.REDIS_URL,{maxRetriesPerRequest:1});
 await pool.query('SELECT 1');await redis.ping();
 const subscriber=redis.duplicate();subscriber.on('error',()=>{});await subscriber.ping();

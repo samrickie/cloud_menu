@@ -9,21 +9,22 @@ export function ServiceDesk({token,locale,role,from,until}:Props){
  const sw=locale==='sw',text=(en:string,kiswahili:string)=>sw?kiswahili:en;
  const labels:Record<string,string>={NEW:text('Received','Imepokelewa'),ACCEPTED:text('Accepted','Imekubaliwa'),PREPARING:text('Preparing','Inaandaliwa'),READY:text('Ready','Tayari'),SERVED:text('Served','Imehudumiwa'),REJECTED:text('Rejected','Imekataliwa'),CANCELLED:text('Cancelled','Imefutwa')};
  const [orders,setOrders]=useState<RecordData[]>([]),[calls,setCalls]=useState<RecordData[]>([]),[filter,setFilter]=useState(''),[error,setError]=useState(''),[version,refresh]=useState(0),[busy,setBusy]=useState(false);
+ const [pickups,setPickups]=useState<RecordData[]>([]);
  const [page,setPage]=useState(1);
  const floor=['OWNER','MANAGER','WAITER'].includes(role);
  useEffect(()=>{
   let current=true,running=false;
   async function load(){if(running)return;running=true;try{
    const params=new URLSearchParams({page:String(page)});if(filter)params.set('item_status',filter);if(from)params.set('from',from);if(until)params.set('until',until);
-   const [tickets,inbox]=await Promise.all([request(token,'/v1/staff/orders?'+params),floor?request(token,'/v1/staff/waiter-calls'):Promise.resolve({calls:[]})]);
-   if(current){setOrders(tickets.orders);setCalls(inbox.calls);setError('');}
+   const [tickets,inbox,ready]=await Promise.all([request(token,'/v1/staff/orders?'+params),floor?request(token,'/v1/staff/waiter-calls'):Promise.resolve({calls:[]}),role==='WAITER'?request(token,'/v1/staff/orders?item_status=READY'):Promise.resolve({orders:[]})]);
+   if(current){setPickups(ready.orders);setOrders(tickets.orders);setCalls(inbox.calls);setError('');}
   }catch{if(current)setError(text('Could not refresh service desk.','Imeshindwa kusasisha huduma.'));}finally{running=false;}}
   void load();const timer=setInterval(()=>void load(),5000);return()=>{current=false;clearInterval(timer);};
  },[token,role,from,until,version,page,filter]);
  async function change(path:string,method:string,body?:unknown){setBusy(true);try{await request(token,path,method,body);refresh(n=>n+1);}catch{setError(text('Update failed. Refresh and try again.','Imeshindwa kuhifadhi. Onyesha upya.'));}finally{setBusy(false);}}
  const date=(value:string)=>value?new Date(value).toLocaleString(sw?'sw-TZ':'en-TZ',{timeZone:'Africa/Dar_es_Salaam'}):'—';
  const tickets=orders.flatMap(order=>['KITCHEN','BAR'].map(station=>({order,station,items:order.items.filter((i:RecordData)=>i.station===station&&(!filter||i.status===filter)) as RecordData[]})).filter(t=>t.items.length));
- return <><button onClick={()=>refresh(n=>n+1)}>{text('Refresh orders','Onyesha maagizo upya')}</button>{error&&<p role="alert">{error}</p>}
+ return <>{role==='WAITER'&&<section aria-live="polite" aria-atomic="false"><h2>{text('Ready for pickup','Tayari kupelekwa')}</h2>{!pickups.length&&<p>{text('No items waiting for delivery.','Hakuna bidhaa za kupeleka.')}</p>}{pickups.map(o=><article class="cm-card" key={o.id}><strong>{o.table_label} · #{o.order_no}</strong>{o.items.filter((i:RecordData)=>i.status==='READY').map((i:RecordData)=><p key={i.id}>{i.station} · {i.quantity} × {i.name_snapshot} <button disabled={busy} onClick={()=>void change('/v1/staff/orders/'+o.id+'/items/'+i.id+'/status','PATCH',{status:'SERVED'})}>{text('Delivered to table','Imefikishwa mezani')}</button></p>)}</article>)}</section>}<button onClick={()=>refresh(n=>n+1)}>{text('Refresh orders','Onyesha maagizo upya')}</button>{error&&<p role="alert">{error}</p>}
  {floor&&<section><h2>{text('Waiter requests','Maombi ya mhudumu')}</h2>{!calls.length&&<p>{text('No open requests.','Hakuna maombi.')}</p>}{calls.map(call=><article class="cm-card" key={call.id}><strong>{call.table_label} · {({HELP:text('Need help','Msaada'),BILL:text('Bill please','Bili'),CLEAN_TABLE:text('Clean table','Safisha meza'),WATER:text('Water','Maji')} as Record<string,string>)[call.reason]}</strong><p>{call.message}</p><small>{date(call.created_at)}</small>{call.status==='OPEN'?<button disabled={busy} onClick={()=>void change('/v1/staff/waiter-calls/'+call.id+'/acknowledge','POST')}>{text('On my way','Ninakuja')}</button>:<button disabled={busy} onClick={()=>void change('/v1/staff/waiter-calls/'+call.id+'/resolve','POST')}>{text('Mark resolved','Maliza ombi')}</button>}</article>)}</section>}
  <label>{text('Filter by status','Chuja kwa hali')}<select value={filter} onChange={e=>{setFilter(e.currentTarget.value);setPage(1);}}><option value="">{text('All statuses','Hali zote')}</option>{Object.entries(labels).map(([id,label])=><option value={id}>{label}</option>)}</select></label>
  <div class="ops-table-scroll"><table><thead><tr>{[text('Order / table','Agizo / meza'),text('Order type','Aina ya agizo'),text('Item / station','Bidhaa / kituo'),text('Customer message','Ujumbe wa mteja'),text('Status','Hali'),text('Received','Imepokelewa'),text('Served','Imehudumiwa'),text('Handled by','Mhudumu'),text('Next step','Hatua inayofuata')].map(label=><th>{label}</th>)}</tr></thead>

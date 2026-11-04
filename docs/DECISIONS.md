@@ -93,3 +93,5 @@ The supplied documents are the product authority. Original Office files are pres
 
 - Guests share bill totals, but the bill API returns only their own itemized history. Each device can allocate its own items in the itemized UI. One checkout keeps a single order number; staff tickets group by order and station, with fulfillment tracked per item.
 - Registration stores tip consent per venue, off by default. Cash is posted against a locked share only after explicit staff confirmation. The receipt, bill update, staff audit record and refresh event commit together. No payment-provider credentials are involved.
+
+- Venue dashboard revenue now recognizes served order lines at final delivery, using the most recent served-line timestamp on a fully served order. Exclude cancelled/rejected lines; do not count unserved tickets, tips or bill-level charges. Payment mix, cash receipts and subscription fee bases retain their original accounting definitions.
