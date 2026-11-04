@@ -30,6 +30,11 @@ jobs:
           fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n');
           fs.appendFileSync('pnpm-workspace.yaml',"\noverrides:\n  tmp: 0.2.6\n  basic-ftp: 6.2.1\n");
           JS
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('apps/api/src/frontends.ts')
+          p.write_text(p.read_text().replace("res.setHeader('Cache-Control'", "res.header('Cache-Control'"))
+          PY
           pnpm install --no-frozen-lockfile
       - run: pnpm audit --audit-level=high
       - run: pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm budget
