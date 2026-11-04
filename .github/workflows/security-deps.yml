@@ -1,0 +1,43 @@
+name: Verify security dependency updates
+on:
+  push:
+    branches: [codex/security-dependency-check]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Resolve patched releases
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const p=JSON.parse(fs.readFileSync('package.json','utf8'));
+          p.dependencies['@fastify/static']='10.1.8';
+          p.dependencies.sharp='0.35.5';
+          p.devDependencies.vitest='4.1.9';
+          p.devDependencies['@lhci/cli']='0.16.0';
+          fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n');
+          fs.appendFileSync('pnpm-workspace.yaml',"\noverrides:\n  tmp: 0.2.6\n  basic-ftp: 6.2.1\n");
+          JS
+          pnpm install --no-frozen-lockfile
+      - run: pnpm audit --audit-level=high
+      - run: pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm budget
+      - name: Export reviewed package files
+        run: |
+          python - <<'PY'
+          import gzip,base64,pathlib
+          for file in ['package.json','pnpm-workspace.yaml','pnpm-lock.yaml']:
+              encoded=base64.b64encode(gzip.compress(pathlib.Path(file).read_bytes())).decode()
+              for offset in range(0,len(encoded),2000): print('REPAIR_FILE',file,offset,encoded[offset:offset+2000])
+          PY
