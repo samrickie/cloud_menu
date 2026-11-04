@@ -95,3 +95,5 @@ The supplied documents are the product authority. Original Office files are pres
 - Registration stores tip consent per venue, off by default. Cash is posted against a locked share only after explicit staff confirmation. The receipt, bill update, staff audit record and refresh event commit together. No payment-provider credentials are involved.
 
 - Venue dashboard revenue now recognizes served order lines at final delivery, using the most recent served-line timestamp on a fully served order. Exclude cancelled/rejected lines; do not count unserved tickets, tips or bill-level charges. Payment mix, cash receipts and subscription fee bases retain their original accounting definitions.
+
+- Venue analytics use the supplied dashboard HTML as a visual reference only. The heatmap counts orders by placement time in Dar es Salaam. Sellers and categories rank by ordered line value, excluding cancelled/rejected lines. Service speed reports measured waiter acknowledgement and placement-to-final-delivery times; no target is implied. Stock alerts show up to eight tracked items at or below their configured reorder threshold.
