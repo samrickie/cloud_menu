@@ -43,7 +43,8 @@ export function registerGuestOperations(app:FastifyInstance,ctx:Context,limit:(k
    const [session]=await tx.rows('table_sessions',{id:sid,venue_id:guest.venue_id,status:'ACTIVE'});if(!session)throw new Problem(409,'SESSION_CLOSED');
    const recent=(await tx.rows('waiter_calls',{venue_id:guest.venue_id,session_id:sid,participant_id:guest.participant_id})).find(c=>Date.now()-new Date(c.created_at).getTime()<60000);if(recent)return {call:recent,repeated:true};
    const call=await tx.add('waiter_calls',{id:randomUUID(),venue_id:guest.venue_id,session_id:sid,table_id:session.table_id,participant_id:guest.participant_id,...input,status:'OPEN',created_at:new Date().toISOString(),acknowledged_at:null,acknowledged_by:null});
-   const event=await tx.add('realtime_events',{venue_id:guest.venue_id,session_id:sid,event_type:'waiter.called',payload:{participant_id:call.participant_id,call_id:call.id,table_id:call.table_id,reason:call.reason,message:call.message,status:call.status,created_at:call.created_at}});return {call,repeated:false,seq:event.seq};
+   const [notificationTable]=await tx.rows('dining_tables',{id:session.table_id,venue_id:guest.venue_id});
+   const event=await tx.add('realtime_events',{venue_id:guest.venue_id,session_id:sid,event_type:'waiter.called',payload:{participant_id:call.participant_id,call_id:call.id,table_id:call.table_id,table_label:notificationTable?.label??null,reason:call.reason,message:call.message,status:call.status,created_at:call.created_at}});return {call,repeated:false,seq:event.seq};
   });if(result.seq)await publish(guest.venue_id,Number(result.seq)).catch(()=>{});reply.code(result.repeated?200:201);return {call:result.call,repeated:result.repeated};
  });
  app.post('/v1/staff/waiter-calls/:id/resolve',async req=>{

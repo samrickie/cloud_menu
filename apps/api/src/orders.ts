@@ -45,7 +45,8 @@ export function registerOrders(app:FastifyInstance,ctx:Context,limit:(key:string
    const order=await tx.add('orders',{id:randomUUID(),venue_id:guest.venue_id,session_id:sid,placed_by:guest.participant_id,order_no:previous.reduce((n,o)=>Math.max(n,o.order_no),0)+1,business_date:date,client_order_id:input.client_order_id,request_hash:clientHash,status:'NEW',subtotal_tzs:p.subtotal_tzs,note:input.note??null,created_at:new Date().toISOString()});
    await deductStock(tx,guest.venue_id,order.id,p.lines);
    const lines:Row[]=[];for(const l of p.lines){const line=await tx.add('order_items',{id:randomUUID(),order_id:order.id,item_id:l.item_id,participant_id:guest.participant_id,name_snapshot:l.name,unit_price_tzs:l.unit_price_tzs,modifiers_total_tzs:l.modifiers_total_tzs,quantity:l.quantity,line_total_tzs:l.line_total_tzs,note:l.note,station:l.station,status:'NEW'});for(const m of l.modifiers)await tx.add('order_item_modifiers',{id:randomUUID(),order_item_id:line.id,modifier_id:m.id,name_snapshot:m.name_en,price_delta_tzs:m.price_delta_tzs});lines.push({...line,name:l.name});}
-   const response={order:{...order,items:lines},repriced:false};const event=await tx.add('realtime_events',{venue_id:guest.venue_id,session_id:sid,event_type:'order.created',payload:response.order});const billing=await syncBill(tx,guest.venue_id,sid);
+   const [notificationTable]=await tx.rows('dining_tables',{id:session.table_id,venue_id:guest.venue_id});
+   const response={order:{...order,table_label:notificationTable?.label??null,items:lines},repriced:false};const event=await tx.add('realtime_events',{venue_id:guest.venue_id,session_id:sid,event_type:'order.created',payload:response.order});const billing=await syncBill(tx,guest.venue_id,sid);
    const idem={scope,key,request_hash:bodyHash,response_code:201,response_body:response,expires_at:new Date(Date.now()+86400000).toISOString()};if(saved)await tx.patch('idempotency_keys',{scope,key},idem);else await tx.add('idempotency_keys',idem);
    await tx.patch('table_sessions',{id:sid},{last_activity_at:new Date().toISOString()});return {body:response,replay:false,seq:billing.seq??event.seq};
   });
@@ -70,7 +71,8 @@ export function registerOrders(app:FastifyInstance,ctx:Context,limit:(key:string
    const progress=steps[Math.min(...remaining.map(i=>steps.indexOf(i.status)))];
    await tx.patch('orders',{id,venue_id:staff.venue_id},{status:progress});
    await tx.add('audit_log',{venue_id:staff.venue_id,actor_type:'STAFF',actor_id:staff.id,action:'ORDER_ITEM_STATUS',entity_type:'order_item',entity_id:line,data:{status}});
-   const event=await tx.add('realtime_events',{venue_id:staff.venue_id,session_id:order.session_id,event_type:'order.status_changed',payload:{participant_id:order.placed_by,order_id:id,status:progress}});
+   const [notificationSession]=await tx.rows('table_sessions',{id:order.session_id,venue_id:staff.venue_id});const [notificationTable]=notificationSession?await tx.rows('dining_tables',{id:notificationSession.table_id,venue_id:staff.venue_id}):[];
+   const event=await tx.add('realtime_events',{venue_id:staff.venue_id,session_id:order.session_id,event_type:'order.status_changed',payload:{participant_id:order.placed_by,order_id:id,order_no:order.order_no,table_label:notificationTable?.label??null,status:progress,item_status:status,item_id:line,station:item.station}});
    return {status,seq:Number(event.seq)};
   });
   if(result.seq&&publish)await publish(staff.venue_id,result.seq).catch(()=>{});

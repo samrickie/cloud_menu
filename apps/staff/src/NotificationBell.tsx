@@ -1,0 +1,20 @@
+import {useEffect,useRef,useState} from 'preact/hooks';
+import {request} from '../../owner/src/api.ts';
+type Data=Record<string,any>;
+export function NotificationBell({token,locale,onOrders}:{token:string;locale:'en'|'sw';onOrders:()=>void}){
+ const t=(en:string,sw:string)=>locale==='sw'?sw:en;
+ const [data,setData]=useState<Data>(),[open,setOpen]=useState(false),[error,setError]=useState(false),[busy,setBusy]=useState(false);
+ const root=useRef<HTMLDivElement>(null),button=useRef<HTMLButtonElement>(null);
+ useEffect(()=>{let active=true,inflight=false;const load=async()=>{if(inflight)return;inflight=true;try{const value=await request(token,'/v1/staff/notifications');if(active){setData(value);setError(false);}}catch{if(active)setError(true);}finally{inflight=false;}};void load();const timer=setInterval(()=>{if(document.visibilityState==='visible')void load();},5000);const focus=()=>void load();window.addEventListener('focus',focus);return()=>{active=false;clearInterval(timer);window.removeEventListener('focus',focus);};},[token]);
+ useEffect(()=>{if(!open)return;const close=(e:PointerEvent)=>{if(!root.current?.contains(e.target as Node))setOpen(false);};document.addEventListener('pointerdown',close);return()=>document.removeEventListener('pointerdown',close);},[open]);
+ const labels:Record<string,string>={NEW_ORDER:t('New order','Agizo jipya'),READY:t('Ready for pickup','Tayari kuchukuliwa'),WAITER_CALL:t('Guest request','Ombi la mgeni')};
+ return <div class="staff-notifications" ref={root} onKeyDown={e=>{if(e.key==='Escape'){setOpen(false);button.current?.focus();}}}>
+ <button ref={button} class="staff-bell" aria-label={`${t('Notifications','Arifa')}: ${data?.unread??0} ${t('unread','hazijasomwa')}`} aria-expanded={open} aria-controls="staff-notification-panel" onClick={()=>setOpen(!open)}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span class="staff-bell-count">{data?.unread>99?'99+':data?.unread??0}</span>{error&&<span aria-label={t('Connection interrupted','Muunganisho umekatika')}>!</span>}</button>
+ <span class="sr-only" role="status" aria-live="polite">{data?`${data.unread} ${t('unread notifications','arifa hazijasomwa')}`:''}</span>
+ {open&&<section id="staff-notification-panel" class="staff-notification-panel" aria-label={t('Notifications','Arifa')}><div class="cm-row"><h2>{t('Notifications','Arifa')}</h2><button onClick={()=>{setOpen(false);button.current?.focus();}}>{t('Close','Funga')}</button></div><p class="cm-muted">{t('Latest 50 from the last 7 days. Read status is personal. Updates every 5 seconds while open.','Arifa 50 za karibuni ndani ya siku 7. Hali ya kusoma ni ya mtu binafsi. Husasishwa kila sekunde 5 programu ikiwa wazi.')}</p>
+ {error&&<p role="alert">{t('Could not refresh notifications. Retrying…','Imeshindwa kusasisha arifa. Inajaribu tena…')}</p>}
+ <button disabled={busy||!data?.unread} onClick={()=>{if(!data)return;setBusy(true);void request(token,'/v1/staff/notifications/read','POST',{through:data.through}).then(()=>request(token,'/v1/staff/notifications')).then(setData).catch(()=>setError(true)).finally(()=>setBusy(false));}}>{t('Mark all as read','Weka zote zimesomwa')}</button>
+ {!data?<p>{t('Loading…','Inapakia…')}</p>:!data.notifications.length?<p>{t('No notifications yet.','Bado hakuna arifa.')}</p>:<ul>{data.notifications.map((n:Data)=><li key={n.seq} class={n.unread?'unread':''}><button onClick={()=>{onOrders();setOpen(false);}}><strong>{labels[n.type]}{n.order_no?` #${n.order_no}`:''}</strong><span>{n.table_label??''}{n.items.length?` · ${n.items.join(', ')}`:''}</span><time dateTime={n.created_at}>{new Intl.DateTimeFormat(locale==='sw'?'sw-TZ':'en-TZ',{dateStyle:'short',timeStyle:'short',timeZone:'Africa/Dar_es_Salaam'}).format(new Date(n.created_at))}</time>{n.unread&&<small>{t('Unread','Haijasomwa')}</small>}</button></li>)}</ul>}
+ </section>}
+ </div>;
+}

@@ -1,3 +1,5 @@
+import {relevantNotification} from '../apps/api/src/staff-notifications.ts';
+import type {VenueFilters} from '../apps/api/src/venue-filters.ts';
 import {memoryPlatformOverview,memoryPlatformVenues} from './platform-memory.ts';
 import {accessExpired} from '../apps/api/src/subscription-access.ts';
 import {memoryDashboard} from './dashboard-memory.ts';
@@ -5,11 +7,13 @@ import type {ReportWindow} from '../apps/api/src/dashboard.ts';
 import type { Store, Table, Row } from '../apps/api/src/store.ts';
 // Test adapter only. The production server never selects this adapter.
 export class MemoryStore implements Store {
+ async staffNotifications(venue:string,role:string,after:number,through:number){const events=(await this.rows('realtime_events',{venue_id:venue})).filter(e=>e.seq<=through&&new Date(e.created_at).getTime()>=Date.now()-7*86400000&&relevantNotification(e,role)).sort((a,b)=>b.seq-a.seq);return {events:events.slice(0,50),unread:events.filter(e=>e.seq>after).length};}
+
  async subscriptionSales(venue:string,basis:string,start:string,end:string){const within=(value:unknown)=>new Date(String(value)).getTime()>=Date.parse(start)&&new Date(String(value)).getTime()<Date.parse(end);if(basis==='COLLECTED')return (await this.rows('payment_transactions',{venue_id:venue})).filter(p=>p.status==='SUCCESS'&&within(p.completed_at)).reduce((n,p)=>n+p.amount_tzs,0);let total=0;for(const o of (await this.rows('orders',{venue_id:venue})).filter(o=>o.status!=='CANCELLED'&&within(o.created_at)))for(const i of (await this.rows('order_items',{order_id:o.id})).filter(i=>!['REJECTED','CANCELLED'].includes(i.status)))total+=i.line_total_tzs;return total;}
  async venueAccess(venue:string){const [v]=await this.rows('venues',{id:venue});if(!v||!['ACTIVE','TRIAL'].includes(v.status??'TRIAL'))return false;const [a]=await this.rows('venue_access',{venue_id:venue});if(!a||a.state==='UNMANAGED')return true;if(['REVOKED','EXPIRED'].includes(a.state))return false;if(accessExpired(a)){await this.patch('venues',{id:venue},{status:'SUSPENDED'});await this.patch('venue_access',{venue_id:venue},{state:'EXPIRED',revision:a.revision+1,updated_at:new Date().toISOString()});await this.add('audit_log',{venue_id:venue,actor_type:'SYSTEM',action:'SUBSCRIPTION_EXPIRED',entity_type:'venue',entity_id:venue,data:{}});await this.add('realtime_events',{venue_id:venue,session_id:null,event_type:'venue.access_suspended',payload:{status:'SUSPENDED'}});return false;}return true;}
  async expiredVenueAccess(limit:number){const out:Row[]=[];for(const a of await this.rows('venue_access',{}))if(accessExpired(a)){const [v]=await this.rows('venues',{id:a.venue_id});if(v&&['ACTIVE','TRIAL'].includes(v.status))out.push({venue_id:v.id});if(out.length===limit)break;}return out;}
  async platformOverview(start:string|null){return memoryPlatformOverview(this,start);}
- async platformVenues(search:string,page:number,size:number){return memoryPlatformVenues(this,search,page,size);}
+ async platformVenues(search:string,page:number,size:number,filters?:VenueFilters){return memoryPlatformVenues(this,search,page,size,filters);}
  async venueAudit(venue:string,limit:number){return (await this.rows('audit_log',{venue_id:venue})).sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()).slice(0,limit);}
  async recentOrders(venue:string,station?:string,status?:string,from?:string,until?:string,page=1,itemStatus?:string){const out:Row[]=[];for(const o of (await this.rows('orders',{venue_id:venue})).filter(o=>(!status||o.status===status)&&(!from||Date.parse(o.created_at)>=Date.parse(from))&&(!until||Date.parse(o.created_at)<Date.parse(until))).sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime())){if((!station&&!itemStatus)||(await this.rows('order_items',{order_id:o.id,...(station?{station}:{}),...(itemStatus?{status:itemStatus}:{})})).length)out.push(o);if(out.length===page*200)break;}return out.slice((page-1)*200);}
  async dashboard(venue:string,w:ReportWindow){return memoryDashboard(this,venue,w);}
@@ -22,7 +26,7 @@ export class MemoryStore implements Store {
  async eventHead(venue:string){return (this.data.realtime_events??[]).filter(e=>e.venue_id===venue).reduce((n,e)=>Math.max(n,e.seq),0);}
  data: Partial<Record<Table,Row[]>> = {}; private tail = Promise.resolve();
  async rows(table:Table,where:Row) { return structuredClone((this.data[table]??[]).filter(r=>Object.entries(where).every(([k,v])=>r[k]===v))); }
- async add(table:Table,row:Row) { const value={...row};if(['bills','audit_log','venues','owner_accounts','subscriptions','platform_admins'].includes(table)&&!value.created_at)value.created_at=new Date().toISOString();if(table==='realtime_events')value.seq=(this.data.realtime_events?.length??0)+1; (this.data[table]??=[]).push(value); return structuredClone(value); }
+ async add(table:Table,row:Row) { const value={...row};if(['realtime_events','bills','audit_log','venues','owner_accounts','subscriptions','platform_admins'].includes(table)&&!value.created_at)value.created_at=new Date().toISOString();if(table==='realtime_events')value.seq=(this.data.realtime_events?.length??0)+1; (this.data[table]??=[]).push(value); return structuredClone(value); }
  async patch(table:Table,where:Row,change:Row) { for(const r of this.data[table]??[]) if(Object.entries(where).every(([k,v])=>r[k]===v)) Object.assign(r,change); }
  async remove(table:'item_modifier_groups'|'bill_share_items',where:Row){if(!Object.keys(where).length||(table==='bill_share_items'&&(!where.venue_id||!where.session_id)))throw Error('Invalid link deletion');this.data[table]=(this.data[table]??[]).filter(r=>!Object.entries(where).every(([k,v])=>r[k]===v));}
  async tx<T>(_lock:string,work:(tx:Store)=>Promise<T>):Promise<T> {

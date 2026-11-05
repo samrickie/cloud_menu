@@ -1,5 +1,6 @@
 export type Locale='en'|'sw';
 const sw:Record<string,string>={
+ 'Venue billing changed':'Malipo ya ukumbi yamebadilishwa',
  'Sales terms start':'Masharti ya mauzo yanaanza','Unused trial or access is preserved before sales fees begin.':'Jaribio au ruhusa iliyobaki inahifadhiwa kabla ya ada za mauzo kuanza.',
  'Subscription model selected':'Mpango wa usajili umechaguliwa','Subscription expired':'Usajili umeisha','Menu edited':'Menyu imehaririwa','Inventory adjusted':'Hisa zimerekebishwa','Tables created':'Meza zimeongezwa',
  'Estimated service fee':'Makadirio ya ada ya huduma','Sales base':'Mauzo yanayotumika kukokotoa','Estimate only; no charge has been initiated.':'Ni makadirio tu; hakuna malipo yaliyoanzishwa.',

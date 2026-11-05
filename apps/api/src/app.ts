@@ -1,3 +1,4 @@
+import {registerStaffNotifications} from './staff-notifications.ts';
 import Fastify,{LogController} from 'fastify';
 import { z, ZodError } from 'zod';
 import { randomUUID,randomBytes } from 'node:crypto';
@@ -82,7 +83,7 @@ export async function buildApp(options:AppOptions){
  registerMenu(app,context(store,options.tokenSecret));
  registerOrders(app,context(store,options.tokenSecret),limit,publish,options.orderingEnabled??true);
  registerDashboard(app,context(store,options.tokenSecret),limit,options.dashboardCache);
- registerInventory(app,context(store,options.tokenSecret),limit,publish);
+ registerStaffNotifications(app,context(store,options.tokenSecret),limit);registerInventory(app,context(store,options.tokenSecret),limit,publish);
  registerTeam(app,context(store,options.tokenSecret),limit);
  registerStaffAuth(app,context(store,options.tokenSecret),limit);
  registerGuestOperations(app,context(store,options.tokenSecret),limit,publish);
