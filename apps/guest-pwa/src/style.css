@@ -1,0 +1,6 @@
+@import "../../../packages/ui/src/tokens.css";
+@import "./guest-layout.css";
+
+.star-rating{border:0;margin:0;padding:0}.star-rating>div{display:flex;flex-wrap:wrap}.star-rating label{position:relative;display:grid;place-items:center;min-width:44px;min-height:44px;cursor:pointer}.star-rating input{position:absolute;opacity:0}.star-rating span{font-size:1.8rem;color:var(--cm-highlight)}.star-rating input:focus-visible+span{outline:2px solid currentColor}
+
+.public-home nav{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}.public-home nav a,.rating-submit{background:var(--cm-primary,#c9a24b);color:var(--cm-primary-text,#0c0d0f);padding:14px 22px;border-radius:12px;font-weight:800;min-height:44px}.public-home hr{margin:2rem auto;max-width:4rem}.rating-submit{display:block;width:100%;margin-block:12px 24px}

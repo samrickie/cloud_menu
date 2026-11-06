@@ -1,0 +1,1 @@
+module.exports={ci:{collect:{numberOfRuns:3,settings:{formFactor:'mobile',throttlingMethod:'simulate',throttling:{rttMs:150,throughputKbps:1638.4,requestLatencyMs:562.5,downloadThroughputKbps:1474.56,uploadThroughputKbps:675,cpuSlowdownMultiplier:4}}},assert:{assertions:{'largest-contentful-paint':['error',{maxNumericValue:4000,aggregationMethod:'pessimistic'}]}}}};
