@@ -5,6 +5,7 @@ export const tables = ['venues','dining_tables','table_sessions','session_partic
 export type Table = typeof tables[number];
 export type Row = Record<string,any>;
 export interface Store {
+ platformGrowth(range:string,start:string|null):Promise<Row[]>;
  staffNotifications(venue:string,role:string,after:number,through:number):Promise<{events:Row[];unread:number}>;
  subscriptionSales(venue:string,basis:string,start:string,end:string):Promise<number>;
  venueAccess(venue:string):Promise<boolean>;
@@ -39,6 +40,16 @@ export class PostgresStore implements Store {
  async venueAccess(venue:string){return (await this.query('SELECT cloud_menu_venue_access($1) AS allowed',[venue])).rows[0].allowed as boolean;}
  async expiredVenueAccess(limit:number){if(!Number.isInteger(limit)||limit<1||limit>100)throw Error('Invalid access expiry batch');return (await this.query("SELECT a.venue_id FROM venue_access a JOIN venues v ON v.id=a.venue_id WHERE v.status IN ('ACTIVE','TRIAL') AND ((a.state='TRIAL' AND a.trial_ends_at<=now()) OR (a.state='ACTIVE' AND a.model='MONTHLY' AND a.paid_until+a.grace_days*interval '1 day'<=now())) ORDER BY a.updated_at,a.venue_id LIMIT $1",[limit])).rows;}
  async venueAudit(venue:string,limit:number){if(!Number.isInteger(limit)||limit<1||limit>100)throw Error('Invalid audit batch');return (await this.query('SELECT action,actor_type,data,created_at FROM audit_log WHERE venue_id=$1 ORDER BY created_at DESC,id LIMIT $2',[venue,limit])).rows;}
+ async platformGrowth(range:string,start:string|null){
+  return (await this.query(`WITH bounds AS (
+   SELECT CASE WHEN $1='all' THEN date_trunc('month',now() AT TIME ZONE 'Africa/Dar_es_Salaam')-interval '11 months' ELSE $2::timestamptz AT TIME ZONE 'Africa/Dar_es_Salaam' END AS begins,
+    now() AT TIME ZONE 'Africa/Dar_es_Salaam' AS ends,
+    CASE WHEN $1='all' THEN 'month' WHEN $1='today' THEN 'hour' ELSE 'day' END AS unit
+  ), buckets AS (SELECT b.*,g AS bucket FROM bounds b CROSS JOIN LATERAL generate_series(date_trunc(unit,begins),CASE WHEN $1='today' THEN date_trunc('day',ends)+interval '23 hours' ELSE date_trunc(unit,ends) END,CASE WHEN $1='all' THEN interval '1 month' WHEN $1='today' THEN interval '1 hour' ELSE interval '1 day' END) g),
+  registrations AS (SELECT date_trunc(b.unit,v.created_at AT TIME ZONE 'Africa/Dar_es_Salaam') AS bucket,count(*) AS total FROM venues v CROSS JOIN bounds b WHERE v.created_at>=b.begins AT TIME ZONE 'Africa/Dar_es_Salaam' AND v.created_at<=now() GROUP BY 1),
+  placed AS (SELECT date_trunc(b.unit,o.created_at AT TIME ZONE 'Africa/Dar_es_Salaam') AS bucket,count(*) AS total FROM orders o CROSS JOIN bounds b WHERE o.created_at>=b.begins AT TIME ZONE 'Africa/Dar_es_Salaam' AND o.created_at<=now() GROUP BY 1)
+  SELECT to_char(g.bucket,'YYYY-MM-DD HH24:MI') AS bucket,COALESCE(v.total,0)::integer AS venues,COALESCE(o.total,0)::integer AS orders FROM buckets g LEFT JOIN registrations v USING(bucket) LEFT JOIN placed o USING(bucket) ORDER BY g.bucket`,[range,start])).rows;
+ }
  async platformOverview(start:string|null){return (await this.query(`WITH current_venues AS (
  SELECT v.*, (v.status IN ('ACTIVE','TRIAL') AND (a.venue_id IS NULL OR a.state='UNMANAGED' OR (a.state='TRIAL' AND a.trial_ends_at>now()) OR (a.state='ACTIVE' AND (a.model='SALES_BASED' OR (a.model='MONTHLY' AND a.paid_until+a.grace_days*interval '1 day'>now()))))) AS allowed
  FROM venues v LEFT JOIN venue_access a ON a.venue_id=v.id
@@ -55,7 +66,7 @@ export class PostgresStore implements Store {
  const values:unknown[]=[search];
  const conditions=["strpos(lower(name||' '||slug::text||' '||COALESCE(owner_email,'')),lower($1))>0"];
  const add=(sql:string,value:unknown)=>{values.push(value);conditions.push(sql.replace('?',`$${values.length}`));};
- if(filters.access)add('subscription_state=?',filters.access);
+ if(filters.access==='LIVE_ACTIVE'||filters.access==='LIVE_TRIAL'){add('status=?',filters.access==='LIVE_ACTIVE'?'ACTIVE':'TRIAL');conditions.push("subscription_state NOT IN ('EXPIRED','REVOKED','SUSPENDED','CLOSED')");}else if(filters.access==='RESTRICTED')conditions.push("subscription_state IN ('EXPIRED','REVOKED','SUSPENDED')");else if(filters.access)add('subscription_state=?',filters.access);
  if(filters.model)add("COALESCE(model::text,'NONE')=?",filters.model);
  if(filters.sample)add('is_sample=?',filters.sample==='yes');
  if(filters.registered_from)add("created_at>=(?::date::timestamp AT TIME ZONE 'UTC')",filters.registered_from);

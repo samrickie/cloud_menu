@@ -12,6 +12,14 @@ const accountHeaders=async(a:any)=>({authorization:'Bearer '+await auth(secrets.
 beforeEach(async()=>{f=await fixture();await f.app.close();f.app=await buildApp({store:f.store,tokenSecret:secrets.token,qrSecret:secrets.qr,logger:false,platformAdminEmails:[adminEmail]});f.init=(device_id=randomUUID(),extra={})=>f.app.inject({method:'POST',url:'/v1/sessions/init',payload:{qr:f.qr,device_id,locale:'en',...extra}});account=await identity(adminEmail);const exchange=await f.app.inject({method:'POST',url:'/v1/platform/auth/exchange',headers:await accountHeaders(account),payload:{}});admin={authorization:'Bearer '+exchange.json().platform_token};const a=await identity('sample-venue-owner@example.test'),s=await f.store.add('staff_users',{id:randomUUID(),venue_id:f.venue.id,owner_account_id:a.id,role:'OWNER',is_active:true});await f.store.patch('venues',{id:f.venue.id},{owner_account_id:a.id});owner={authorization:'Bearer '+await auth(secrets.token).sign({kind:'staff',venue_id:f.venue.id,staff_id:s.id,role:'OWNER'},3600)};});
 afterEach(async()=>f.app.close());
 const action=(kind:string,revision:number,extra={})=>f.app.inject({method:'PATCH',url:`/v1/platform/venues/${f.venue.id}/access`,headers:admin,payload:{action:kind,expected_revision:revision,client_action_id:randomUUID(),confirm_slug:f.venue.slug,reason:'Sample data reviewed by operator',...extra}});
+it('platform growth uses real registrations and orders with zero-filled EAT buckets and admin-only access',async()=>{
+ const report=await f.app.inject({url:'/v1/platform/overview?range=today',headers:admin});
+ expect(report.statusCode).toBe(200);expect(report.json().growth).toHaveLength(24);
+ expect(report.json().growth.reduce((n:number,b:any)=>n+b.venues,0)).toBe(1);
+ expect(report.json().growth.every((b:any)=>b.orders===0)).toBe(true);
+ expect((await f.app.inject({url:'/v1/platform/overview?range=all',headers:admin})).json().growth).toHaveLength(12);
+ expect((await f.app.inject({url:'/v1/platform/overview?range=today',headers:owner})).statusCode).toBe(403);
+});
 it('admin sets venue-specific billing terms with audit, revision checks and idempotency without changing defaults',async()=>{
  const payload={model:'SALES_BASED',use_defaults:false,monthly_fee_tzs:45000,sales_fee_bp:75,sales_basis:'COLLECTED',expected_revision:0,expected_policy_revision:0,confirm_slug:f.venue.slug,client_action_id:randomUUID(),reason:'Sample data negotiated terms'};
  const req={method:'PUT' as const,url:`/v1/platform/venues/${f.venue.id}/billing`,headers:admin,payload};

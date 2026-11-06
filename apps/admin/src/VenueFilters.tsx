@@ -3,7 +3,7 @@ export function VenueFilters({locale,values,change}:{locale:Locale;values:Record
  const t=(en:string,sw:string)=>locale==='sw'?sw:en;
  const set=(key:string,value:string)=>{const next={...values};if(value)next[key]=value;else delete next[key];change(next);};
  const fields:[string,string,string,[string,string,string][]][]=[
- ['access','Access state','Hali ya ruhusa',[['TRIAL','Trial','Jaribio'],['ACTIVE','Active','Inatumika'],['EXPIRED','Expired','Imeisha'],['REVOKED','Revoked','Imefutwa'],['SUSPENDED','Suspended','Imesimamishwa'],['CLOSED','Closed','Imefungwa'],['UNMANAGED','Legacy access','Ruhusa ya awali']]],
+ ['access','Access state','Hali ya ruhusa',[['LIVE_ACTIVE','Active venues with access','Kumbi hai zenye ruhusa'],['LIVE_TRIAL','Trial venues with access','Kumbi za majaribio zenye ruhusa'],['RESTRICTED','Restricted access','Ruhusa zilizozuiwa'],['TRIAL','Trial','Jaribio'],['ACTIVE','Active','Inatumika'],['EXPIRED','Expired','Imeisha'],['REVOKED','Revoked','Imefutwa'],['SUSPENDED','Suspended','Imesimamishwa'],['CLOSED','Closed','Imefungwa'],['UNMANAGED','Legacy access','Ruhusa ya awali']]],
  ['model','Billing model','Mpango wa malipo',[['MONTHLY','Monthly','Kila mwezi'],['SALES_BASED','Pay per service','Lipa kwa huduma'],['NONE','Not selected','Haijachaguliwa']]],
  ['sample','Venue data','Data ya ukumbi',[['no','Real venues','Kumbi halisi'],['yes','Sample data','Data ya mfano']]],
  ['expiry_days','Access deadline','Mwisho wa ruhusa',[['7','Within 7 days','Ndani ya siku 7'],['14','Within 14 days','Ndani ya siku 14'],['30','Within 30 days','Ndani ya siku 30']]],

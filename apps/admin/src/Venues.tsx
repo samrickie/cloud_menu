@@ -7,8 +7,8 @@ import {Dashboard} from '../../owner/src/operations/Dashboard.tsx';
 import {ApiError} from '../../owner/src/api.ts';
 import type {Call,Data} from './types.ts';
 const states:Data={UNMANAGED:'Legacy access',TRIAL:'Trial',ACTIVE:'Active',EXPIRED:'Expired',REVOKED:'Revoked',SUSPENDED:'Suspended',CLOSED:'Closed'};
-export function Venues({call,token,locale}:{call:Call;token:string;locale:Locale}){
- const t=platformText(locale),[filters,setFilters]=useState<Record<string,string>>({}),[search,setSearch]=useState(''),[page,setPage]=useState(1),[data,setData]=useState<Data>(),[error,setError]=useState(''),[selected,setSelected]=useState(''),number=useRef(0);
+export function Venues({call,token,locale,initialFilters={},initialVenue=''}:{call:Call;token:string;locale:Locale;initialFilters?:Record<string,string>;initialVenue?:string}){
+ const t=platformText(locale),[filters,setFilters]=useState<Record<string,string>>(initialFilters),[search,setSearch]=useState(''),[page,setPage]=useState(1),[data,setData]=useState<Data>(),[error,setError]=useState(''),[selected,setSelected]=useState(initialVenue),number=useRef(0);
  async function load(){const n=++number.current;try{const r=await call(`/v1/platform/venues?search=${encodeURIComponent(search)}&${new URLSearchParams(filters)}&page=${page}&size=25`);if(n===number.current){setData(r);setError('');}}catch(e){if(n===number.current)setError(platformError(locale,e instanceof ApiError?e.code:undefined));}}
  useEffect(()=>{const timer=setTimeout(()=>void load(),200);return()=>{clearTimeout(timer);number.current++;};},[search,page,filters]);
  if(selected)return <VenueDetail call={call} token={token} locale={locale} id={selected} back={()=>{setSelected('');void load();}}/>;
