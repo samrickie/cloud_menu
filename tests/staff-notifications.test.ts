@@ -16,10 +16,10 @@ it('bells are venue and station scoped; read state belongs to each staff member 
  const list=(headers:Record<string,string>)=>f.app.inject({url:'/v1/staff/notifications',headers});
  expect((await list(kitchen)).json().unread).toBe(1);expect((await list(bar)).json().unread).toBe(1);
  expect((await list(foreignStaff)).json().unread).toBe(0);
- const before=(await list(waiter)).json();expect(before.unread).toBe(4);
+ const before=(await list(waiter)).json();expect(before.unread).toBe(2);
  await add('order.created',{id:randomUUID(),order_no:3,items:[{station:'KITCHEN',name:'New meal'}]});
  const read=await f.app.inject({method:'POST',url:'/v1/staff/notifications/read',headers:waiter,payload:{through:before.through}});expect(read.statusCode).toBe(200);
- expect((await list(waiter)).json().unread).toBe(1);expect((await list(otherWaiter)).json().unread).toBe(5);
+ expect((await list(waiter)).json().unread).toBe(0);expect((await list(otherWaiter)).json().unread).toBe(2);
  expect((await f.app.inject({method:'POST',url:'/v1/staff/notifications/read',headers:waiter,payload:{through:99999}})).statusCode).toBe(422);
  expect((await f.app.inject({url:'/v1/staff/notifications?venue_id='+foreign.id,headers:waiter})).statusCode).toBe(422);
  }finally{await f.app.close();}

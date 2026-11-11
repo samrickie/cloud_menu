@@ -1,3 +1,7 @@
+import {registerBranches} from './branches.ts';
+import {registerServiceSettings} from './service-settings.ts';
+import {registerOnlineMenu} from './online-menu.ts';
+import {registerAttention} from './attention.ts';
 import {registerStaffNotifications} from './staff-notifications.ts';
 import Fastify,{LogController} from 'fastify';
 import { z, ZodError } from 'zod';
@@ -79,10 +83,13 @@ export async function buildApp(options:AppOptions){
   const {display_name}=z.object({display_name:z.string().trim().min(1).max(60)}).parse(request.body);
   await store.patch('session_participants',{id:token.participant_id,session_id:id},{display_name});return {participant:{id:token.participant_id,display_name}};
  });
- registerPlatform(app,context(store,options.tokenSecret),limit,options.platformAdminEmails??[],publish);
+ registerPlatform(app,context(store,options.tokenSecret),limit,options.platformAdminEmails??[],publish,options.guestOrigin??'http://localhost:5173');
  registerMenu(app,context(store,options.tokenSecret));
  registerOrders(app,context(store,options.tokenSecret),limit,publish,options.orderingEnabled??true);
  registerDashboard(app,context(store,options.tokenSecret),limit,options.dashboardCache);
+ registerBranches(app,context(store,options.tokenSecret),limit);
+ registerServiceSettings(app,context(store,options.tokenSecret),limit,publish);
+ registerAttention(app,context(store,options.tokenSecret),broker,limit,publish);
  registerStaffNotifications(app,context(store,options.tokenSecret),limit);registerInventory(app,context(store,options.tokenSecret),limit,publish);
  registerTeam(app,context(store,options.tokenSecret),limit);
  registerStaffAuth(app,context(store,options.tokenSecret),limit);
@@ -93,6 +100,7 @@ export async function buildApp(options:AppOptions){
  registerSocialAuth(app,context(store,options.tokenSecret),options.tokenSecret,options.social,options.ownerRegistrationEnabled??true,limit);
  registerOwner(app,context(store,options.tokenSecret),limit,options.ownerRegistrationEnabled??true);
  await registerAdminMenu(app,context(store,options.tokenSecret),options.uploadDir??path.resolve('uploads'),limit);
+ registerOnlineMenu(app,context(store,options.tokenSecret),options.qrSecret,options.guestOrigin??'http://localhost:5173',limit);
  registerTables(app,context(store,options.tokenSecret),options.qrSecret,options.guestOrigin??'http://localhost:5173',limit);
  return app;
 }

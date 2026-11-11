@@ -6,7 +6,7 @@ const require=createRequire(import.meta.url),lhRequire=createRequire(require.res
 const {default:lighthouse}=await import(pathToFileURL(lhRequire.resolve('lighthouse')).href);
 const {launch}=await import(pathToFileURL(lhRequire.resolve('chrome-launcher')).href);
 let chrome;
-await mkdir('.artifacts/lighthouse',{recursive:true});const bundle=JSON.parse(await readFile('.artifacts/bundle.json','utf8'));const entry=await(await fetch('http://127.0.0.1:4173/__demo/qr')).json();const url='http://127.0.0.1:4173'+entry.url;const report=[];
+await mkdir('.artifacts/lighthouse',{recursive:true});const bundle=JSON.parse(await readFile('.artifacts/bundle.json','utf8'));const origin=process.env.LIGHTHOUSE_ORIGIN??'http://127.0.0.1:4173';const entry=await(await fetch(origin+'/__demo/qr')).json();const url=origin+entry.url;const report=[];
 try{
  for(const profile of ['3g','4g']){
   const samples=[];

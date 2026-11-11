@@ -34,6 +34,7 @@ export function registerBilling(app:FastifyInstance,ctx:Context,publish:(venue:s
  app.post('/v1/staff/shares/:id/cash',async req=>{
   const staff=await ctx.staff(req,['OWNER','MANAGER','WAITER']),venue_id=staff.venue_id,id=idParams(req.params);
   const result=await ctx.store.tx('venue:'+venue_id,async tx=>{
+   if(!await tx.venueAccess(venue_id))throw new Problem(403,'VENUE_SUSPENDED');
    const [share]=await tx.rows('bill_shares',{id,venue_id});if(!share)throw new Problem(404,'SHARE_NOT_FOUND');
    const scope={venue_id,session_id:share.session_id},split=await tx.lockSplit(venue_id,scope.session_id,share.split_id);
    const attempts=await tx.rows('payment_transactions',{venue_id,share_id:id});

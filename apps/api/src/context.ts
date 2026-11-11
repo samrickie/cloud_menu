@@ -1,3 +1,4 @@
+import {businessAvailable} from './business-access.ts';
 import type { FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { auth,Problem } from './security.ts';
@@ -9,6 +10,7 @@ export function context(store:Store,secret:string){
   if(p.kind!=='staff')throw new Problem(403,'ROLE_FORBIDDEN');const [staff]=await store.rows('staff_users',{id:p.staff_id,venue_id:p.venue_id,is_active:true});
   if(!staff||staff.role!==p.role)throw new Problem(403,'ROLE_FORBIDDEN');
   if(staff.owner_account_id){const [account]=await store.rows('owner_accounts',{id:staff.owner_account_id,is_active:true});if(!account)throw new Problem(403,'ROLE_FORBIDDEN');}
+  if(!await businessAvailable(store,staff.venue_id))throw new Problem(403,'BUSINESS_UNAVAILABLE');
   if(roles&&!roles.includes(staff.role))throw new Problem(403,'ROLE_FORBIDDEN');if(!allowRestricted&&!await store.venueAccess(staff.venue_id))throw new Problem(403,'VENUE_SUSPENDED');return staff;
  },async guest(request:FastifyRequest,sessionId?:string){
   const p=await tokens.verify(request.headers.authorization?.replace(/^Bearer /,''));

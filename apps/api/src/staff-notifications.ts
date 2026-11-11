@@ -4,7 +4,7 @@ import type {Context} from './context.ts';
 import type {Row} from './store.ts';
 import {Problem} from './security.ts';
 export function relevantNotification(e:Row,role:string){
- if(e.event_type==='order.created')return !['KITCHEN','BAR'].includes(role)||e.payload.items?.some((i:Row)=>i.station===role);
+ if(e.event_type==='order.created')return role!=='WAITER'&&(!['KITCHEN','BAR'].includes(role)||e.payload.items?.some((i:Row)=>i.station===role));
  return !['KITCHEN','BAR'].includes(role)&&(e.event_type==='waiter.called'||e.event_type==='order.status_changed'&&e.payload.item_status==='READY');
 }
 export function registerStaffNotifications(app:FastifyInstance,ctx:Context,limit:(key:string,max:number)=>Promise<void>){

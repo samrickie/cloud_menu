@@ -6,7 +6,7 @@ GitHub Pages: the root `index.html` is a clearly labelled static design preview 
 
 To run the actual connected application locally, build all apps with `pnpm build`, then use `pnpm exec tsx tools/demo-server.ts` for the labelled, disposable loopback sandbox. It prints a signed guest link; owner setup is at http://127.0.0.1:4173/owner/ and staff sign-in at http://127.0.0.1:4173/staff/. Owner-created menu items and tables connect to that same guest app. Sandbox data is lost on restart and no real payments are configured. The production start uses PostgreSQL/Redis; `SERVE_FRONTENDS=true` serves the built apps from the API origin. Configure `GUEST_ORIGIN` to that actual HTTPS origin before printing QR stickers.
 
-QR-based guest ordering for lounges and casual dining in Dar es Salaam. This branch extends the Sprint 1 ordering and administration foundation with the luxury venue platform in incremental slices. See [delivery status](docs/LUXURY_DELIVERY_STATUS.md) and [visual reference](docs/DESIGN_REFERENCE.md). All supplied examples and generated fixtures are explicitly **DEMO** data. Guest bills and splits, owner/manager reports and sellable-unit inventory are implemented. Real mobile-money integration and complete KDS fulfillment remain unfinished.
+QR-based guest ordering for lounges and casual dining in Dar es Salaam. This branch extends the Sprint 1 ordering and administration foundation with the luxury venue platform in incremental slices. See [delivery status](docs/LUXURY_DELIVERY_STATUS.md) and [visual reference](docs/DESIGN_REFERENCE.md). All supplied examples and generated fixtures are explicitly **DEMO** data. Guest bills and splits, owner/manager reports and sellable-unit inventory are implemented. Station fulfillment and ready-item waiter handoff are implemented; real mobile-money integration remains unfinished.
 
 ## Setup
 
@@ -41,7 +41,7 @@ On this Windows workstation browser checks use `LOCAL_EDGE=1`; Lighthouse uses `
 
 `apps/guest-pwa`: Preact, Vite, TypeScript, Tailwind, Workbox. Categories, search, modifiers, session-local cart, signed price review and order confirmation. Guest UI copy is in `src/i18n.ts` (draft English/Swahili).
 
-`apps/staff`: role login, station inventory and recent order notes; managers share the venue dashboard and menu/table controls. Full KDS fulfillment remains unfinished.
+`apps/staff`: role login, station inventory and recent order notes; managers share the venue dashboard and menu/table controls. Kitchen/Bar advance station items through Accepted, Preparing and Ready; Waiter marks ready items Served.
 
 `apps/owner`: onboarding, themed sites, dashboard, rich menu items, tables/QR, inventory, team and subscription model choice.
 
@@ -75,6 +75,8 @@ A separate free Render staging service is deployed; production hosting and accep
 
 Owner accounts are separate from staff PIN login. Enable `OWNER_REGISTRATION_ENABLED=true` only for development or explicitly temporary staging while verified email delivery is pending. The loopback demo server exposes `/owner/` and uses disposable memory state; production never uses it. Owner bearer tokens are held in memory and sign-out clears them; a reload requires signing in again.
 
-The guest app now uses Noir & Gold and venue themes, note chips, live order snapshots and waiter calls. See [expanded delivery evidence](docs/LUXURY_DELIVERY_STATUS.md) for the exact tested slice and remaining gaps. Live staff fulfillment transitions and real payments remain unfinished; guest billing/splits are connected to the API. Fresh local Lighthouse figures apply only to the labelled three-item/no-photo sample fixture.
+The guest app now uses Noir & Gold and venue themes, note chips, live order snapshots and waiter calls. See [expanded delivery evidence](docs/LUXURY_DELIVERY_STATUS.md) for the exact tested slice and remaining gaps. Live staff fulfillment transitions are implemented; real payment-provider integration remains unfinished; guest billing/splits are connected to the API. Fresh local Lighthouse figures apply only to the labelled three-item/no-photo sample fixture.
 
 Run `pnpm --filter @cloud-menu/api worker` alongside the API after applying migrations. It uses the same `.env` PostgreSQL/Redis connections and schedules bounded split-lock expiry checks with pg-boss. Request-time checks enforce expiry when a worker is delayed. Free Render staging runs this scheduler inside the web process. An always-on production worker and production shutdown testing remain gates.
+
+Branch operations, platform management and release limitations: [November operations release](docs/OPERATIONS_RELEASE.md).

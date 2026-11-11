@@ -1,3 +1,4 @@
+import {businessAvailable,requireAccountAccess} from './business-access.ts';
 import type {FastifyInstance,FastifyRequest} from 'fastify';
 import {z} from 'zod';
 import {hash as passwordHash,compare} from 'bcryptjs';
@@ -28,7 +29,7 @@ const publicSite=(p:Row)=>({tips_enabled:p.tips_enabled??false,venue_type:p.venu
 export function registerOwner(app:FastifyInstance,ctx:Context,limit:(key:string,max:number)=>Promise<void>,registrationEnabled=true){
  const accountToken=(a:Row)=>ctx.tokens.sign({kind:'account',account_id:a.id,auth_version:a.auth_version},3600);
  const staffToken=(s:Row)=>ctx.tokens.sign({kind:'staff',staff_id:s.id,venue_id:s.venue_id,role:s.role},3600);
- async function account(req:FastifyRequest){const p=await ctx.tokens.verify(req.headers.authorization?.replace(/^Bearer /,''));if(p.kind!=='account')throw new Problem(403,'ROLE_FORBIDDEN');const [a]=await ctx.store.rows('owner_accounts',{id:p.account_id,is_active:true});if(!a||a.auth_version!==p.auth_version)throw new Problem(401,'TOKEN_INVALID');return a;}
+ async function account(req:FastifyRequest){const p=await ctx.tokens.verify(req.headers.authorization?.replace(/^Bearer /,''));if(p.kind!=='account')throw new Problem(403,'ROLE_FORBIDDEN');const [a]=await ctx.store.rows('owner_accounts',{id:p.account_id,is_active:true});if(!a||a.auth_version!==p.auth_version)throw new Problem(401,'TOKEN_INVALID');await requireAccountAccess(ctx.store,a.id);return a;}
  async function owner(req:FastifyRequest){const staff=await ctx.staff(req,['OWNER']);if(!staff.owner_account_id)throw new Problem(403,'OWNER_ACCOUNT_REQUIRED');const [a]=await ctx.store.rows('owner_accounts',{id:staff.owner_account_id,is_active:true});const [v]=await ctx.store.rows('venues',{id:staff.venue_id,owner_account_id:staff.owner_account_id});if(!a||!v)throw new Problem(403,'ROLE_FORBIDDEN');return {staff,a,v};}
  app.post('/v1/owner/accounts',async(req,reply)=>{
   await limit(`owner-register:${req.ip}`,5);if(!registrationEnabled)throw new Problem(503,'REGISTRATION_UNAVAILABLE');
@@ -49,14 +50,15 @@ export function registerOwner(app:FastifyInstance,ctx:Context,limit:(key:string,
    }
    await tx.patch('owner_accounts',{id:a.id},{failed_attempts:0,first_failure_at:null,locked_until:null});return a;
   });
-  if(!result)throw new Problem(401,'LOGIN_INVALID');return {account_token:await accountToken(result),venues:(await ctx.store.rows('venues',{owner_account_id:result.id})).map(publicVenue)};
+  if(!result)throw new Problem(401,'LOGIN_INVALID');await requireAccountAccess(ctx.store,result.id);return {account_token:await accountToken(result),venues:(await ctx.store.rows('venues',{owner_account_id:result.id})).map(publicVenue)};
  });
  app.post('/v1/owner/venues',async(req,reply)=>{
-  await limit(`owner-venue:${req.ip}`,10);const a=await account(req);const input=z.object({name:z.string().trim().min(2).max(120).regex(/^[^\p{Cc}]+$/u),slug,tips_enabled:z.boolean().default(false),venue_type:z.enum(['RESTAURANT','BAR','LOUNGE','CAFE','FAST_FOOD','HOTEL','CUSTOM'])}).strict().parse(req.body);
+  await limit(`owner-venue:${req.ip}`,10);const a=await account(req);const input=z.object({name:z.string().trim().min(2).max(120).regex(/^[^\p{Cc}]+$/u),slug,business_id:z.uuid().optional(),street:z.string().trim().max(200).default(''),area:z.string().trim().max(120).default(''),city:z.string().trim().max(120).default(''),phone:z.string().trim().max(40).default(''),tips_enabled:z.boolean().default(false),venue_type:z.enum(['RESTAURANT','BAR','LOUNGE','CAFE','FAST_FOOD','HOTEL','CUSTOM'])}).strict().parse(req.body);
   const pin=await passwordHash(randomBytes(32).toString('hex'),12);
   const result=await ctx.store.tx('venue-slug:'+input.slug,async tx=>{
    if((await tx.rows('venues',{slug:input.slug})).length)throw new Problem(409,'SLUG_UNAVAILABLE');
-   const v=await tx.add('venues',{id:randomUUID(),name:input.name,slug:input.slug,owner_account_id:a.id,status:'TRIAL',currency:'TZS',max_participants:20});
+   if(input.business_id){const [business]=await tx.rows('businesses',{id:input.business_id,owner_account_id:a.id,state:'ACTIVE'});if(!business)throw new Problem(404,'BUSINESS_NOT_FOUND');}else{input.business_id=randomUUID();await tx.add('businesses',{id:input.business_id,name:input.name,owner_account_id:a.id,state:'ACTIVE',revision:0});}
+   const v=await tx.add('venues',{id:randomUUID(),name:input.name,slug:input.slug,owner_account_id:a.id,business_id:input.business_id??randomUUID(),street:input.street,area:input.area,city:input.city,phone:input.phone,status:'TRIAL',currency:'TZS',max_participants:20});
    await initialTrial(tx,v.id);
    const s=await tx.add('staff_users',{id:randomUUID(),venue_id:v.id,owner_account_id:a.id,full_name:a.full_name,role:'OWNER',pin_hash:pin,is_active:true,failed_attempts:0});
    await tx.add('venue_profiles',{venue_id:v.id,venue_type:input.venue_type,tips_enabled:input.tips_enabled,theme:'noir',template:'lounge',brand_colour:null,primary_text:null,languages:['en','sw'],sections:['Menu','Offers','Gallery','Reviews','Contact'],welcome_en:'',welcome_sw:'',hours:{},logo_key:null,cover_key:null,is_published:false,is_sample:false});
@@ -69,7 +71,7 @@ export function registerOwner(app:FastifyInstance,ctx:Context,limit:(key:string,
    return {v,s};
   });reply.code(201);return {venue:publicVenue(result.v),staff_token:await staffToken(result.s),category_defaults:presets[input.venue_type].map(([name_en,name_sw,station])=>({name_en,name_sw,station}))};
  });
- app.post('/v1/owner/venues/:id/select',async req=>{const a=await account(req);const {id}=z.object({id:z.uuid()}).parse(req.params);const [v]=await ctx.store.rows('venues',{id,owner_account_id:a.id});const [s]=await ctx.store.rows('staff_users',{venue_id:id,owner_account_id:a.id,is_active:true,role:'OWNER'});if(!v||!s)throw new Problem(404,'VENUE_NOT_FOUND');return {venue:publicVenue(v),staff_token:await staffToken(s)};});
+ app.post('/v1/owner/venues/:id/select',async req=>{const a=await account(req);const {id}=z.object({id:z.uuid()}).parse(req.params);const [v]=await ctx.store.rows('venues',{id,owner_account_id:a.id});const [s]=await ctx.store.rows('staff_users',{venue_id:id,owner_account_id:a.id,is_active:true,role:'OWNER'});if(!v||!s)throw new Problem(404,'VENUE_NOT_FOUND');if(!await businessAvailable(ctx.store,id))throw new Problem(403,'BUSINESS_UNAVAILABLE');return {venue:publicVenue(v),staff_token:await staffToken(s)};});
  app.get('/v1/owner/site',async req=>{const {v,a}=await owner(req);const [p]=await ctx.store.rows('venue_profiles',{venue_id:v.id});return {venue:publicVenue(v),site:p?publicSite(p):null,email_verified:!!a.email_verified_at,is_published:!!p?.is_published};});
  app.put('/v1/owner/site',async req=>{
   const {v}=await owner(req);const change=siteInput.parse(req.body);if(!Object.keys(change).length)throw new Problem(422,'VALIDATION_ERROR');

@@ -1,3 +1,4 @@
+import {serviceSettings,businessDay} from './service-settings.ts';
 import type {FastifyInstance} from 'fastify';
 import {z} from 'zod';
 import {randomUUID} from 'node:crypto';
@@ -40,7 +41,7 @@ export function registerOrders(app:FastifyInstance,ctx:Context,limit:(key:string
    if(existing){if(existing.placed_by!==guest.participant_id||existing.request_hash!==clientHash)throw new Problem(422,'IDEMPOTENCY_CONFLICT');const lines=await tx.rows('order_items',{order_id:existing.id});return {body:{order:{...existing,items:lines.map(l=>({...l,name:l.name_snapshot}))},repriced:false},replay:true};}
    const p=await priced({...ctx,store:tx},guest.venue_id,input);
    if(input.quote_token){const quote=await ctx.tokens.verify(input.quote_token);if(quote.kind!=='quote'||quote.session_id!==sid||quote.request_hash!==clientHash||quote.price_hash!==hash(JSON.stringify(p)))throw new Problem(409,'PRICE_CHANGED','Review the updated total before confirming.');}
-   const date=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Dar_es_Salaam',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+   const date=businessDay((await serviceSettings(tx,guest.venue_id)).business_day_cutoff).date;
    const previous=(await tx.rows('orders',{venue_id:guest.venue_id})).filter(o=>o.business_date===date);
    const order=await tx.add('orders',{id:randomUUID(),venue_id:guest.venue_id,session_id:sid,placed_by:guest.participant_id,order_no:previous.reduce((n,o)=>Math.max(n,o.order_no),0)+1,business_date:date,client_order_id:input.client_order_id,request_hash:clientHash,status:'NEW',subtotal_tzs:p.subtotal_tzs,note:input.note??null,created_at:new Date().toISOString()});
    await deductStock(tx,guest.venue_id,order.id,p.lines);
@@ -65,7 +66,7 @@ export function registerOrders(app:FastifyInstance,ctx:Context,limit:(key:string
    if(item.status===status)return {status,seq:0};
    const steps=['NEW','ACCEPTED','PREPARING','READY','SERVED'];
    if(steps.indexOf(item.status)<0||steps.indexOf(status)!==steps.indexOf(item.status)+1)throw new Problem(409,'INVALID_TRANSITION');
-   const timestamp=new Date().toISOString(),change={status,handled_by:staff.id,...(status==='SERVED'?{served_at:timestamp}:{})};
+   const timestamp=new Date().toISOString(),change={status,stage_started_at:timestamp,handled_by:staff.id,...(status==='SERVED'?{served_at:timestamp}:{})};
    await tx.patch('order_items',{id:line,order_id:id},change);item.status=status;
    const remaining=lines.filter(i=>steps.includes(i.status));
    const progress=steps[Math.min(...remaining.map(i=>steps.indexOf(i.status)))];
@@ -82,8 +83,9 @@ export function registerOrders(app:FastifyInstance,ctx:Context,limit:(key:string
   const staff=await ctx.staff(request);await limit(`staff-orders:${staff.id}`,60);
   const query=z.object({item_status:z.enum(['NEW','ACCEPTED','PREPARING','READY','SERVED','CANCELLED','REJECTED']).optional(),from:z.iso.datetime().optional(),until:z.iso.datetime().optional(),page:z.coerce.number().int().min(1).max(100000).default(1),status:z.enum(['NEW','ACCEPTED','PREPARING','READY','SERVED','CANCELLED']).optional(),station:z.enum(['KITCHEN','BAR']).optional(),since_seq:z.coerce.number().int().min(0).default(0)}).parse(request.query);
   const station=['KITCHEN','BAR'].includes(staff.role as string)?staff.role:query.station;
+  const businessStart=['KITCHEN','BAR','WAITER'].includes(staff.role)?businessDay((await serviceSettings(ctx.store,staff.venue_id)).business_day_cutoff).start:undefined;
   const handlers=new Map((await ctx.store.rows('staff_users',{venue_id:staff.venue_id})).map(s=>[s.id,s.full_name]));
-  const orders=[];for(const o of await ctx.store.recentOrders(staff.venue_id,station,query.status,query.from,query.until,query.page,query.item_status)){const lines=(await ctx.store.rows('order_items',{order_id:o.id})).filter(l=>!station||l.station===station);if(lines.length){for(const l of lines){l.handled_name=handlers.get(l.handled_by)??null;l.modifiers=await ctx.store.rows('order_item_modifiers',{order_item_id:l.id});}const [session]=await ctx.store.rows('table_sessions',{id:o.session_id,venue_id:staff.venue_id});const [table]=session?await ctx.store.rows('dining_tables',{id:session.table_id,venue_id:staff.venue_id}):[];const feedback=['MANAGER','OWNER'].includes(staff.role)?(await ctx.store.rows('service_feedback',{order_id:o.id,venue_id:staff.venue_id}))[0]:undefined;const cash_shares=[];if(!station&&session){const [locked]=await ctx.store.rows('bill_splits',{venue_id:staff.venue_id,session_id:session.id,status:'LOCKED'});if(locked&&Date.parse(locked.lock_expires_at)>Date.now())for(const sh of await ctx.store.rows('bill_shares',{venue_id:staff.venue_id,session_id:session.id,split_id:locked.id,status:'UNPAID'}))if(sh.amount_tzs>0)cash_shares.push({id:sh.id,label:sh.label,amount_tzs:sh.amount_tzs});}orders.push({...o,cash_shares,feedback,table_label:table?.label??null,items:lines});}}
+  const orders=[];for(const o of await ctx.store.recentOrders(staff.venue_id,station,query.status,businessStart?undefined:query.from,businessStart?undefined:query.until,query.page,query.item_status,businessStart)){const lines=(await ctx.store.rows('order_items',{order_id:o.id})).filter(l=>(!station||l.station===station)&&(staff.role!=='WAITER'||['READY','SERVED','CANCELLED','REJECTED'].includes(l.status)));if(lines.length){for(const l of lines){l.handled_name=handlers.get(l.handled_by)??null;l.modifiers=await ctx.store.rows('order_item_modifiers',{order_item_id:l.id});}const [session]=await ctx.store.rows('table_sessions',{id:o.session_id,venue_id:staff.venue_id});const [table]=session?await ctx.store.rows('dining_tables',{id:session.table_id,venue_id:staff.venue_id}):[];const feedback=['MANAGER','OWNER'].includes(staff.role)?(await ctx.store.rows('service_feedback',{order_id:o.id,venue_id:staff.venue_id}))[0]:undefined;const cash_shares=[];if(!station&&session){const [locked]=await ctx.store.rows('bill_splits',{venue_id:staff.venue_id,session_id:session.id,status:'LOCKED'});if(locked&&Date.parse(locked.lock_expires_at)>Date.now())for(const sh of await ctx.store.rows('bill_shares',{venue_id:staff.venue_id,session_id:session.id,split_id:locked.id,status:'UNPAID'}))if(sh.amount_tzs>0)cash_shares.push({id:sh.id,label:sh.label,amount_tzs:sh.amount_tzs});}orders.push({...o,cash_shares,feedback,table_label:table?.label??null,items:lines});}}
   const seq=await ctx.store.eventHead(staff.venue_id);return {orders,seq};
  });
 }

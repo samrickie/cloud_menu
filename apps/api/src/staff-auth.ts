@@ -23,6 +23,7 @@ export function registerStaffAuth(app:FastifyInstance,ctx:Context,limit:(key:str
    await tx.patch('staff_users',{id:u.id},{failed_attempts:0,first_failure_at:null,locked_until:null,last_login_at:new Date(now).toISOString()});return {user:u};
   });
   if(result.locked)throw new Problem(423,'ACCOUNT_LOCKED','Please try again after fifteen minutes.');if(!result.user)throw new Problem(401,'LOGIN_INVALID');
+  if(!await ctx.store.venueAccess(venue.id))throw new Problem(403,'VENUE_SUSPENDED');
   const u=result.user;return {staff_token:await ctx.tokens.sign({kind:'staff',staff_id:u.id,venue_id:u.venue_id,role:u.role},3600),role:u.role,token_expires_at:new Date(Date.now()+3600000).toISOString()};
  });
  app.get('/v1/admin/reports',async request=>{await ctx.staff(request,['MANAGER','OWNER']);throw new Problem(501,'OUT_OF_SPRINT_SCOPE','Reporting is scheduled after Sprint 1.');});

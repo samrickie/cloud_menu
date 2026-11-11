@@ -1,3 +1,4 @@
+import {requireAccountAccess} from './business-access.ts';
 import type {FastifyInstance,FastifyRequest,FastifyReply} from 'fastify';
 import {createHash,randomBytes,randomUUID} from 'node:crypto';
 import {EncryptJWT,jwtDecrypt} from 'jose';
@@ -42,6 +43,7 @@ export function registerSocialAuth(app:FastifyInstance,ctx:Context,secret:string
  app.post('/v1/owner/oauth/finish',async(req,reply)=>{
   await limit(`social-finish:${req.ip}`,20);checkOrigin(req);const payload=await unseal(req,'cm_social_finish','finish'),flow=await consume(hash(String(payload.ticket)),'finish');cookie(reply,'cm_social_finish','',0);
   const [a]=await ctx.store.rows('owner_accounts',{id:flow.account_id,is_active:true});if(!a)throw new Problem(401,'TOKEN_INVALID');
+  await requireAccountAccess(ctx.store,a.id);
   return {account_token:await ctx.tokens.sign({kind:'account',account_id:a.id,auth_version:a.auth_version},3600),venues:(await ctx.store.rows('venues',{owner_account_id:a.id})).map(v=>({id:v.id,name:v.name,slug:v.slug,status:v.status,currency:v.currency}))};
  });
 }

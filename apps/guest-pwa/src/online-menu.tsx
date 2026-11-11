@@ -1,0 +1,10 @@
+import {useEffect,useState} from 'preact/hooks';
+import {MenuView} from './menu-view.tsx';
+import {resolveTheme,themeStyle} from '../../../packages/ui/src/theme.ts';
+export function OnlineMenu({token}:{token:string}){
+ const [data,setData]=useState<any>(),[locale,setLocale]=useState<'en'|'sw'>('en'),[error,setError]=useState(false);
+ useEffect(()=>{let active=true;const abort=new AbortController();async function load(){try{const r=await fetch('/v1/online-menu?token='+encodeURIComponent(token),{cache:'no-store',credentials:'omit',signal:abort.signal});if(!r.ok)throw Error();const next=await r.json();if(active){setData(next);setError(false);}}catch{if(active){setData(undefined);setError(true);}}}void load();const timer=setInterval(()=>void load(),15000);window.addEventListener('focus',load);return()=>{active=false;abort.abort();clearInterval(timer);window.removeEventListener('focus',load);};},[token]);
+ useEffect(()=>{document.documentElement.lang=locale;},[locale]);
+ useEffect(()=>{let theme;try{theme=resolveTheme(data?.venue.theme??'noir',data?.venue.brand_colour??undefined,data?.venue.primary_text??undefined);}catch{theme=resolveTheme('noir');}for(const [k,v]of Object.entries(themeStyle(theme)))document.documentElement.style.setProperty(k,v);},[data?.venue]);
+ return <main class="guest-main"><header class="guest-header"><strong class="guest-brand">Cloud-Menu<span>.</span></strong><button onClick={()=>setLocale(locale==='en'?'sw':'en')}>EN / SW</button></header>{data?<><section class="venue-heading"><h1>{data.venue.name}</h1><p>{locale==='sw'?'Unakula hapa? Changanua QR ya mezani ili kuagiza':'Dine in? Scan the QR on your table to order'}</p>{data.venue.is_sample&&<p>{locale==='sw'?'Data ya mfano':'Sample data'}</p>}</section><MenuView entry={data} locale={locale} viewOnly providedMenu={data.menu}/></>:<p role="status">{error?(locale==='sw'?'Menyu haipatikani kwa sasa.':'This menu is currently unavailable.'):(locale==='sw'?'Inapakia menyu…':'Loading menu…')}</p>}</main>;
+}
