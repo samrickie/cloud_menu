@@ -1,0 +1,9 @@
+import {useEffect,useState} from 'preact/hooks';
+export function AdminTables({token}:{token:string}){
+ const [tables,setTables]=useState<any[]>([]),[error,setError]=useState('');const headers={authorization:`Bearer ${token}`};
+ async function load(){const r=await fetch('/v1/admin/tables',{headers});if(r.ok)setTables((await r.json()).tables);else setError('Unable to load tables.');}
+ useEffect(()=>{void load();},[]);
+ async function create(e:SubmitEvent){e.preventDefault();const f=new FormData(e.currentTarget as HTMLFormElement);const labels=String(f.get('labels')).split(',').map(s=>s.trim()).filter(Boolean);const r=await fetch('/v1/admin/tables',{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({labels})});if(r.ok)await load();else setError((await r.json()).code);}
+ async function download(){const r=await fetch('/v1/admin/tables/qr.pdf',{headers});if(!r.ok){setError('Could not generate QR stickers.');return;}const u=URL.createObjectURL(await r.blob());const a=document.createElement('a');a.href=u;a.download='cloud-menu-qr-stickers.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}
+ return <section><h2>Tables and QR stickers</h2>{error&&<p role="alert">{error}</p>}<form onSubmit={e=>void create(e as SubmitEvent)}><label>Table labels separated by commas<input name="labels" placeholder="T1, T2, T3" required/></label><button>Create tables</button></form><button class="primary" onClick={download}>Download QR stickers</button><p>Print at 100% scale. Test each sticker before placing it on the table.</p>{tables.map(t=><div><h3>{t.label}</h3><a href={t.url} target="_blank" rel="noreferrer">Open guest menu</a><button onClick={async()=>{if(!confirm(`Rotate ${t.label}? Its printed QR will stop working immediately.`))return;const r=await fetch(`/v1/admin/tables/${t.id}/rotate`,{method:'POST',headers});if(r.ok)await load();else setError((await r.json()).code);}}>Rotate QR</button></div>)}</section>;
+}

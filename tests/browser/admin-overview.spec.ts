@@ -1,0 +1,18 @@
+import {test,expect} from '@playwright/test';
+test('platform overview uses real charts, responsive reference layout and actionable venue cards',async({page,request})=>{
+ test.setTimeout(90000);
+ const account=await(await request.get('/__demo/platform')).json();
+ await page.goto('/admin/');await page.getByLabel('Email address',{exact:true}).fill(account.email);await page.getByLabel('Password',{exact:true}).fill(account.password);await page.getByRole('button',{name:'Sign in',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Growth',exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Venue status',exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Ordered vs collected sales',exact:true})).toBeVisible();
+ await expect(page.getByText('Last 12 calendar months; other totals remain all time.',{exact:true})).toBeVisible();
+ for(const width of [280,360,720,884,1440]){await page.setViewportSize({width,height:1000});expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(width);if([360,1440].includes(width))await expect(page).toHaveScreenshot(`admin-overview-${width}.png`,{fullPage:true,maskColor:'#262a2f',mask:[page.locator('.overview-growth svg>text')]});}
+ await page.screenshot({path:'.artifacts/admin-overview-1440.png',fullPage:true});await page.getByRole('button',{name:'Today',exact:true}).click();await expect(page.getByText('Real registrations and orders in the selected period.',{exact:true})).toBeVisible();
+ await page.locator('.overview-growth').getByText('Chart data',{exact:true}).click();await expect(page.locator('.overview-growth tbody tr')).toHaveCount(24);
+ await page.getByTestId('platform-active_venues').click();await expect(page.getByLabel('Access state',{exact:true})).toHaveValue('LIVE_ACTIVE');await expect(page.getByRole('button',{name:/View venue · Masaki/})).toBeVisible();await page.getByRole('button',{name:'Platform overview',exact:true}).click();await page.getByTestId('platform-trial_venues').click();await expect(page.getByLabel('Access state',{exact:true})).toHaveValue('LIVE_TRIAL');
+ await page.getByRole('button',{name:'Platform overview',exact:true}).click();await expect(page.getByRole('heading',{name:'Growth',exact:true})).toBeVisible();
+ const login=await request.post('/v1/owner/auth/login',{data:{email:account.email,password:account.password}});expect(login.status()).toBe(200);const owner=await login.json();const venue=await request.post('/v1/owner/venues',{headers:{authorization:'Bearer '+owner.account_token},data:{name:'Sample data overview venue',slug:'sample-overview-'+crypto.randomUUID().slice(0,8),venue_type:'RESTAURANT'}});expect(venue.status()).toBe(201);await page.getByRole('button',{name:'Refresh',exact:true}).click();await expect(page.locator('.overview-venues').getByRole('button',{name:'Sample data overview venue',exact:true})).toBeVisible();await page.locator('.overview-venues').getByRole('button',{name:'Review venue',exact:true}).click();await expect(page.getByRole('heading',{name:'Access controls',exact:true})).toBeVisible();await page.getByRole('button',{name:'Platform overview',exact:true}).click();
+ await page.getByRole('combobox',{name:'Languages',exact:true}).selectOption('sw');await expect(page.getByRole('heading',{name:'Ukuaji',exact:true})).toBeVisible();
+ await page.setViewportSize({width:360,height:1000});await page.emulateMedia({reducedMotion:'reduce'});await page.locator('html').evaluate(el=>el.style.fontSize='200%');expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(360);
+});

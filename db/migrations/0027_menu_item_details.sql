@@ -1,0 +1,1 @@
+ALTER TABLE items ADD COLUMN details_en jsonb NOT NULL DEFAULT '{}'::jsonb CHECK(jsonb_typeof(details_en)='object'), ADD COLUMN details_sw jsonb NOT NULL DEFAULT '{}'::jsonb CHECK(jsonb_typeof(details_sw)='object');

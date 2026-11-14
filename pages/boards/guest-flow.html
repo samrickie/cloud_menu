@@ -1,0 +1,401 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'"><title>Cloud-Menu — Sample design</title><style>/* cyrillic-ext */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("assets/a4d7cf345b8091e1d2c8c5c8.woff2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("assets/017fab69b4be8ffc08ca3128.woff2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("assets/6252e819a7665ae512c2d046.woff2") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("assets/cfa9a397d86f66c5c51775a2.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("assets/d80df8ff5aecd299a61549f9.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("assets/a4d7cf345b8091e1d2c8c5c8.woff2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("assets/017fab69b4be8ffc08ca3128.woff2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("assets/6252e819a7665ae512c2d046.woff2") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("assets/cfa9a397d86f66c5c51775a2.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("assets/d80df8ff5aecd299a61549f9.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("assets/a4d7cf345b8091e1d2c8c5c8.woff2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("assets/017fab69b4be8ffc08ca3128.woff2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("assets/6252e819a7665ae512c2d046.woff2") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("assets/cfa9a397d86f66c5c51775a2.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("assets/d80df8ff5aecd299a61549f9.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("assets/3c09135e88bbfcd848e99be1.woff2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("assets/447c49583b1b735cc6f56615.woff2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("assets/e507c109c31789b33994646b.woff2") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("assets/dbf64d973b3987844df30992.woff2") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("assets/2f7335119075b2079f1d8825.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("assets/8c2def024c1bf31aacf3624a.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("assets/3c09135e88bbfcd848e99be1.woff2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("assets/447c49583b1b735cc6f56615.woff2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("assets/e507c109c31789b33994646b.woff2") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("assets/dbf64d973b3987844df30992.woff2") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("assets/2f7335119075b2079f1d8825.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("assets/8c2def024c1bf31aacf3624a.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("assets/3c09135e88bbfcd848e99be1.woff2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("assets/447c49583b1b735cc6f56615.woff2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("assets/e507c109c31789b33994646b.woff2") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("assets/dbf64d973b3987844df30992.woff2") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("assets/2f7335119075b2079f1d8825.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("assets/8c2def024c1bf31aacf3624a.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("assets/3c09135e88bbfcd848e99be1.woff2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("assets/447c49583b1b735cc6f56615.woff2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("assets/e507c109c31789b33994646b.woff2") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("assets/dbf64d973b3987844df30992.woff2") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("assets/2f7335119075b2079f1d8825.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("assets/8c2def024c1bf31aacf3624a.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+body{margin:0}button{font:inherit;cursor:pointer}.ph{width:270px;height:560px;background:#0C0D0F;border:1px solid #2B2C30;border-radius:28px;padding:16px;box-sizing:border-box;display:flex;flex-direction:column;gap:9px;font-size:12px;position:relative;overflow:hidden}.card{background:#16171A;border:1px solid #2B2C30;border-radius:14px;padding:10px;box-sizing:border-box}.btn{background:#C9A24B;color:#16171A;border-radius:12px;padding:12px;text-align:center;font-weight:700;font-size:13px;border:0}.amb{background:#E6C46F;color:#F4EFE6}.chip{border:1px solid #2B2C30;background:#16171A;color:#F4EFE6;border-radius:99px;padding:6px 10px;font-size:11px;white-space:nowrap}.on{background:#F4EFE6;color:#16171A;border-color:#F4EFE6}.add{width:30px;height:30px;border-radius:50%;background:#C9A24B;color:#16171A;border:0;font-size:18px}.lbl{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#A9A397;font-weight:700}.mut{color:#A9A397;font-size:10px}.row{display:flex;gap:8px;align-items:center}.root{font-family:"Manrope",sans-serif;color:#F4EFE6;background:#16171A;box-sizing:border-box}h2{font-family:"Cormorant Garamond",serif;font-weight:600;letter-spacing:.01em;font-size:32px!important}.root{background:#0C0D0F!important}.ph{box-shadow:0 30px 60px rgba(0,0,0,.55),inset 0 0 0 1px #3A3328}.card{box-shadow:inset 0 1px 0 rgba(230,196,111,.14)}.btn{letter-spacing:.08em;text-transform:uppercase;font-size:11px}.amb{color:#0C0D0F!important}.lbl{color:#C9A24B;letter-spacing:.16em}.ser{font-family:"Cormorant Garamond",serif;font-weight:600}
+body{margin:0;background:#0c0d0f}helmet,x-dc{display:contents}</style></head><body><aside style="padding:12px 20px;background:#16171a;color:#f4efe6;font:14px/1.5 sans-serif;border-bottom:1px solid #c9a24b">Sample data / Data ya mfano — Static design preview. Controls are inactive; no live orders or payments.</aside><div inert aria-label="Sample data — static design reference"><div class="root" style="width:1240px;height:700px;padding:24px 20px">
+<h2 style="margin:0 0 4px;font-size:22px">Guest flow: scan, order, call waiter, pay (PWA, no install)</h2>
+<div class="mut" style="font-size:12px;margin-bottom:14px">Venue colours come from the owner's template. English / Swahili toggle on every screen.</div>
+<div class="row" style="gap:40px;align-items:flex-start">
+<div><div class="ph">
+<div class="row"><div style="width:30px;height:30px;border-radius:50%;background:#C9A24B;color:#16171A;display:grid;place-items:center;font-weight:800">M</div><div style="flex:1"><b>Masaki Lounge</b><div class="mut">Table 12 · Open till 2am</div></div><button class="chip">EN | SW</button></div>
+<div class="card mut">Search drinks and food</div>
+<div class="row" style="gap:6px"><button class="chip on">Popular</button><button class="chip">Drinks</button><button class="chip">Grill</button><button class="chip">Snacks</button></div>
+<div class="card row"><div style="width:52px;height:52px;border-radius:10px;background:#2B2C30"></div><div style="flex:1"><b>Grilled Tilapia</b><div class="mut">Ugali or chips</div><b style="color:#C9A24B">TZS 25,000</b></div><button class="add" aria-label="Add Grilled Tilapia">+</button></div>
+<div class="card row"><div style="width:52px;height:52px;border-radius:10px;background:#2B2C30"></div><div style="flex:1"><b>Vodka Lime</b><div class="mut">Choose a mixer</div><b style="color:#C9A24B">TZS 8,000</b></div><button class="add" aria-label="Add Vodka Lime">+</button></div>
+<div class="card row"><div style="width:52px;height:52px;border-radius:10px;background:#2B2C30"></div><div style="flex:1"><b>Chicken Skewers</b><div class="mut">6 pieces, pilipili</div><b style="color:#C9A24B">TZS 14,000</b></div><button class="add" aria-label="Add Chicken Skewers">+</button></div>
+<div class="row" style="position:absolute;left:14px;right:14px;bottom:14px"><button class="btn amb" style="width:46px;padding:12px 0;display:grid;place-items:center" aria-label="Call waiter"><svg width="16" height="16" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8a6 6 0 1112 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"></path></svg></button><button class="btn" style="flex:1">View cart (3) · TZS 47,000</button></div>
+</div><div style="margin-top:8px;font-weight:700">1 · Menu + Call waiter</div></div>
+
+<div><div class="ph">
+<div class="row"><b style="flex:1;font-size:15px">Vodka Lime</b><b>TZS 8,000</b></div>
+<div class="lbl">Mixer (required)</div><div class="row"><button class="chip">Coke</button><button class="chip on">Soda</button><button class="chip">Tonic +1,000</button></div>
+<div class="lbl">Ice</div><div class="row"><button class="chip on">Normal</button><button class="chip">No ice</button></div>
+<div class="lbl">Message to the kitchen / bar</div>
+<div class="card" style="height:70px;color:#F4EFE6">No ice please, and bring lime on the side.</div>
+<div class="row" style="flex-wrap:wrap;gap:6px"><button class="chip">No onions</button><button class="chip">Less salt</button><button class="chip">Allergy: nuts</button><button class="chip">Serve together</button></div>
+<div class="row" style="position:absolute;left:14px;right:14px;bottom:14px"><div class="card row" style="padding:8px 12px;font-weight:800"><span>–</span><span>2</span><span>+</span></div><button class="btn" style="flex:1">Add · TZS 16,000</button></div>
+</div><div style="margin-top:8px;font-weight:700">2 · Customise + kitchen message</div></div>
+
+<div><div class="ph">
+<div class="row"><b style="flex:1;font-size:15px">Order #87</b><span class="chip" style="background:#14301F;color:#7FDDB0;border-color:#14301F">Live</span></div>
+<div class="card"><div class="row"><b style="color:#4FBF8A">✓</b><span>Received</span></div><div class="row" style="margin-top:6px"><b style="color:#E0A64A">●</b><b>Preparing · about 12 min</b></div><div class="row mut" style="margin-top:6px"><span>○</span><span>Ready · Served</span></div></div>
+<div class="card mut">2 × Vodka Lime · 1 × Grilled Tilapia<br>Note: no ice, lime on the side</div>
+<div class="lbl" style="margin-top:6px">Call a waiter</div>
+<div class="row" style="flex-wrap:wrap;gap:6px"><button class="chip on">Need help</button><button class="chip">Bill please</button><button class="chip">Clean table</button><button class="chip">Water</button></div>
+<div class="card mut" style="height:44px">Optional message…</div>
+<div class="row" style="position:absolute;left:14px;right:14px;bottom:14px"><button class="btn amb" style="flex:1">Call waiter</button></div>
+</div><div style="margin-top:8px;font-weight:700">3 · Track order + call waiter</div></div>
+
+<div><div class="ph">
+<b style="font-size:15px">Pay your share</b>
+<div class="row"><button class="chip">Equal</button><button class="chip on">My items</button><span class="mut">3 guests</span></div>
+<div class="card" style="background:#241D0E;border-color:#C9A24B;text-align:center"><div class="mut">Your share incl. service</div><b style="font-size:20px">TZS 41,434</b></div>
+<div class="lbl">Mobile money</div>
+<div class="row"><button class="chip on" style="flex:1">M-Pesa</button><button class="chip" style="flex:1">Airtel</button><button class="chip" style="flex:1">Tigo</button></div>
+<div class="card mut">07XX XXX XXX</div>
+<div class="lbl">Or card</div>
+<button class="card row" style="width:100%;text-align:left"><b style="flex:1">Visa / Mastercard</b><span class="mut">Secure page</span></button>
+<div class="mut">Card details are entered on the payment provider's secure page. Cloud-Menu never stores card numbers.</div>
+<div class="row" style="position:absolute;left:14px;right:14px;bottom:14px"><button class="btn" style="flex:1">Pay TZS 41,434</button></div>
+</div><div style="margin-top:8px;font-weight:700">4 · Split + pay (mobile money or card)</div></div>
+</div></div>
+</div></body></html>

@@ -1,0 +1,23 @@
+import {useRef,useState} from 'preact/hooks';
+import type {Locale} from '../../../packages/ui/src/platform-copy.ts';
+import {platformError} from '../../../packages/ui/src/platform-copy.ts';
+import {ApiError} from '../../owner/src/api.ts';
+import type {Call,Data} from './types.ts';
+export function VenueBilling({call,data,locale,saved}:{call:Call;data:Data;locale:Locale;saved:()=>Promise<void>}){
+ const t=(en:string,sw:string)=>locale==='sw'?sw:en;
+ const [model,setModel]=useState(data.subscription.model??'SALES_BASED'),[defaults,setDefaults]=useState(!data.has_custom_pricing),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
+ const attempt=useRef<{key:string;id:string}>();
+ const p=data.policy,d=data.default_policy;
+ const [monthly,setMonthly]=useState(String(p.monthly_fee_tzs??'')),[percent,setPercent]=useState(String(p.sales_fee_bp/100)),[basis,setBasis]=useState(p.sales_basis);
+ return <section class="cm-card"><h2>{t('Venue billing terms','Masharti ya malipo ya ukumbi')}</h2><p>{t('Platform defaults','Viwango vya kawaida')}: {d.monthly_fee_tzs===null?t('Monthly price not configured','Bei ya mwezi haijawekwa'):`TZS ${d.monthly_fee_tzs.toLocaleString()}`} · {d.sales_fee_bp/100}%</p>
+ <form class="cm-form" onSubmit={e=>{e.preventDefault();const f=new FormData(e.currentTarget),body={model,use_defaults:defaults,monthly_fee_tzs:f.get('monthly')===''?null:Number(f.get('monthly')),sales_fee_bp:Math.round(Number(f.get('percent'))*100),sales_basis:f.get('basis'),expected_revision:data.subscription.revision,expected_policy_revision:d.revision,confirm_slug:f.get('slug'),reason:f.get('reason')},key=JSON.stringify(body);if(attempt.current?.key!==key)attempt.current={key,id:crypto.randomUUID()};setBusy(true);setError('');setNotice('');void call(`/v1/platform/venues/${data.venue.id}/billing`,'PUT',{...body,client_action_id:attempt.current.id}).then(async()=>{setNotice(t('Billing terms saved.','Masharti yamehifadhiwa.'));await saved();}).catch(e=>{setError(platformError(locale,e instanceof ApiError?e.code:undefined));}).finally(()=>setBusy(false));}}>
+ <label>{t('Billing model','Mpango wa malipo')}<select aria-label={t('Billing model','Mpango wa malipo')} value={model} onChange={e=>setModel(e.currentTarget.value)}><option value="MONTHLY">{t('Monthly subscription','Usajili wa kila mwezi')}</option><option value="SALES_BASED">{t('Pay per service','Lipa kwa huduma')}</option></select></label>
+ <label class="cm-checkbox"><input type="checkbox" checked={defaults} onChange={e=>setDefaults(e.currentTarget.checked)}/>{t('Use platform defaults','Tumia viwango vya kawaida')}</label>
+ <div class="platform-form-grid"><label>{t('Monthly price (TZS)','Bei ya mwezi (TZS)')}<input name="monthly" type="number" min="0" max="1000000000" step="1" readOnly={defaults} value={defaults?d.monthly_fee_tzs??'':monthly} onInput={e=>setMonthly(e.currentTarget.value)}/></label><label>{t('Sales fee (%)','Ada ya mauzo (%)')}<input name="percent" type="number" min="0" max="100" step="0.01" required readOnly={defaults} value={defaults?d.sales_fee_bp/100:percent} onInput={e=>setPercent(e.currentTarget.value)}/></label></div>
+ <label>{t('Sales basis','Msingi wa mauzo')}<select aria-label={t('Sales basis','Msingi wa mauzo')} name="basis" value={defaults?d.sales_basis:basis} onChange={e=>{if(defaults)e.currentTarget.value=d.sales_basis;else setBasis(e.currentTarget.value);}}><option value="COLLECTED">{t('Successful collected sales','Mauzo yaliyolipwa')}</option><option value="ORDERED">{t('Placed order sales','Mauzo ya maagizo yaliyowekwa')}</option></select></label>
+ <p>{t('Sales-rate changes apply from now; earlier sales keep their previous rate. Monthly price changes apply to the next access extension. No payment is charged.','Mabadiliko ya asilimia yanaanza sasa; mauzo ya awali yanabaki na kiwango cha awali. Bei ya mwezi inatumika kwa nyongeza inayofuata. Hakuna malipo yanayokatwa.')}</p>
+ {data.subscription.state==='ACTIVE'&&data.subscription.model==='SALES_BASED'&&model==='MONTHLY'&&<p role="alert">{t('Switching to monthly pauses access until you grant a monthly extension below.','Kubadili kwenda mwezi kunasimamisha ruhusa hadi utoe nyongeza ya mwezi hapa chini.')}</p>}
+ <label>{t('Confirm venue code','Thibitisha msimbo wa ukumbi')}<input name="slug" required autoComplete="off"/></label><label>{t('Reason','Sababu')}<textarea name="reason" required minLength={3} maxLength={300}/></label>
+ {error&&<p role="alert">{error}</p>}{notice&&<p role="status">{notice}</p>}<button class="primary" disabled={busy}>{t('Save venue billing','Hifadhi malipo ya ukumbi')}</button>
+ </form></section>;
+}

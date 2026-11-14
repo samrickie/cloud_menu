@@ -1,0 +1,3 @@
+import {defineConfig} from '@playwright/test';
+const origin='http://127.0.0.1:'+(process.env.TEST_PORT??4173);
+export default defineConfig({testDir:'tests/browser',workers:1,snapshotPathTemplate:'{testDir}/__screenshots__/{testFilePath}/{arg}{ext}',expect:{toHaveScreenshot:{threshold:.2,maxDiffPixelRatio:.02}},use:{baseURL:origin,viewport:{width:360,height:800},...(process.env.LOCAL_EDGE?{channel:'msedge'}:{})},webServer:{command:'node --import tsx tools/demo-server.ts',url:origin+'/health',reuseExistingServer:!process.env.CI},reporter:[['list'],['html',{open:'never'}],['json',{outputFile:'.artifacts/playwright.json'}]]});
