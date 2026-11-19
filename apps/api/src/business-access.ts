@@ -4,5 +4,5 @@ export async function businessAvailable(store:Store,venue:string){const [v]=awai
 export async function requireAccountAccess(store:Store,id:string){
  if((await store.rows('platform_admins',{account_id:id,is_active:true})).length)return;
  const businesses=await store.rows('businesses',{owner_account_id:id});
- if(businesses.length&&!businesses.some(b=>b.state==='ACTIVE'))throw new Problem(403,'BUSINESS_UNAVAILABLE','This business is temporarily unavailable.');
+ if(businesses.length&&!businesses.some(b=>b.state==='ACTIVE'))throw new Problem(403,businesses.every(b=>b.state==='DELETED')?'BUSINESS_DELETED':'BUSINESS_UNAVAILABLE',businesses.every(b=>b.state==='DELETED')?`No account under "${businesses.map(b=>b.name).join(', ')}" exists. Contact Admin.`:'Account Deactivated. Contact Admin.');
 }

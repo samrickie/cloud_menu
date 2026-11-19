@@ -9,6 +9,7 @@ it('admin invites are single-use, removed admins lose access, and last/self remo
  const exchange=async(a:any)=>f.app.inject({method:'POST',url:'/v1/platform/auth/exchange',headers:{authorization:'Bearer '+await auth(secrets.token).sign({kind:'account',account_id:a.id,auth_version:a.auth_version},3600)},payload:{}});
  const headers={authorization:'Bearer '+(await exchange(a)).json().platform_token};
  expect((await f.app.inject({method:'DELETE',url:'/v1/platform/admins/'+randomUUID(),headers,payload:{reason:'Sample test'}})).json().code).toBe('LAST_ADMIN');
+ await f.store.add('owner_accounts',{id:randomUUID(),email:'sample-second@example.test',full_name:'Sample existing unverified',is_active:true,auth_version:1,email_verified_at:null});
  const invited=await f.app.inject({method:'POST',url:'/v1/platform/admins',headers,payload:{name:'Sample second admin',email:'sample-second@example.test',reason:'Sample delegation'}});expect(invited.statusCode).toBe(200);const pending=(await f.app.inject({url:'/v1/platform/invitations',headers})).json().invitations;expect(pending).toHaveLength(1);expect(JSON.stringify(pending)).not.toContain('token_hash');
  const replaced=await f.app.inject({method:'POST',url:'/v1/platform/invitations/'+pending[0].id,headers,payload:{action:'REISSUE',reason:'Sample replacement'}});
  expect(replaced.statusCode).toBe(200);
