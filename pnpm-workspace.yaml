@@ -1,0 +1,10 @@
+packages:
+  - apps/*
+  - packages/*
+onlyBuiltDependencies:
+  - esbuild
+  - sharp
+
+overrides:
+  tmp: 0.2.6
+  basic-ftp: 6.2.1

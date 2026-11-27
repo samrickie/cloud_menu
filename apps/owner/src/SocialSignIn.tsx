@@ -1,0 +1,10 @@
+import {useEffect,useState} from 'preact/hooks';
+import {Button} from '../../../packages/ui/src/index.tsx';
+import type {Translate} from './i18n.ts';
+export function SocialSignIn({t,done,returnPath='/owner/'}:{t:Translate;returnPath?:'/owner/'|'/admin/';done:(data:{account_token:string;venues:Record<string,any>[]})=>Promise<void>}){
+ const [available,setAvailable]=useState<string[]>([]),[busy,setBusy]=useState(false),[error,setError]=useState(false),[loaded,setLoaded]=useState(false);
+ async function post(path:string){const r=await fetch(path,{method:'POST',credentials:'same-origin'});if(!r.ok)throw Error('Social sign-in unavailable');return r.json();}
+ useEffect(()=>{let active=true;void fetch('/v1/owner/oauth/providers',{credentials:'omit'}).then(r=>{if(!r.ok)throw Error();return r.json();}).then(data=>{if(active){setAvailable(data.providers);setLoaded(true);}}).catch(()=>{if(active)setLoaded(true);});const result=new URLSearchParams(location.search).get('oauth');if(result){history.replaceState(null,'',returnPath);if(result==='complete'){setBusy(true);void post('/v1/owner/oauth/finish').then(done).catch(()=>{if(active)setError(true);}).finally(()=>{if(active)setBusy(false);});}else setError(true);}return()=>{active=false;};},[]);
+ async function signIn(provider:string){setBusy(true);setError(false);try{const result=await post(`/v1/owner/oauth/${provider}/start?target=${returnPath==='/admin/'?'platform':'owner'}`);location.assign(result.url);}catch{setError(true);setBusy(false);}}
+ return <div class="social-sign-in"><p class="cm-muted">{t('Or continue with')}</p><div class="cm-row">{(['google','github'] as const).map(provider=><Button type="button" variant="secondary" disabled={busy||!available.includes(provider)} onClick={()=>void signIn(provider)}>{t(provider==='google'?'Continue with Google':'Continue with GitHub')}</Button>)}</div>{loaded&&!available.length&&<p class="cm-muted"><small>{t('Social sign-in is not configured yet.')}</small></p>}{error&&<p role="alert">{t('Social sign-in could not be completed. Try again or use your email and password.')}</p>}</div>;
+}

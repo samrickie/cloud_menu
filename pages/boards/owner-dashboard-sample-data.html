@@ -1,0 +1,364 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'"><title>Cloud-Menu — Sample design</title><style>/* cyrillic-ext */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("assets/a4d7cf345b8091e1d2c8c5c8.woff2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("assets/017fab69b4be8ffc08ca3128.woff2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("assets/6252e819a7665ae512c2d046.woff2") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("assets/cfa9a397d86f66c5c51775a2.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("assets/d80df8ff5aecd299a61549f9.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("assets/a4d7cf345b8091e1d2c8c5c8.woff2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("assets/017fab69b4be8ffc08ca3128.woff2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("assets/6252e819a7665ae512c2d046.woff2") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("assets/cfa9a397d86f66c5c51775a2.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("assets/d80df8ff5aecd299a61549f9.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("assets/a4d7cf345b8091e1d2c8c5c8.woff2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("assets/017fab69b4be8ffc08ca3128.woff2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("assets/6252e819a7665ae512c2d046.woff2") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("assets/cfa9a397d86f66c5c51775a2.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("assets/d80df8ff5aecd299a61549f9.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("assets/3c09135e88bbfcd848e99be1.woff2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("assets/447c49583b1b735cc6f56615.woff2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("assets/e507c109c31789b33994646b.woff2") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("assets/dbf64d973b3987844df30992.woff2") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("assets/2f7335119075b2079f1d8825.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("assets/8c2def024c1bf31aacf3624a.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("assets/3c09135e88bbfcd848e99be1.woff2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("assets/447c49583b1b735cc6f56615.woff2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("assets/e507c109c31789b33994646b.woff2") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("assets/dbf64d973b3987844df30992.woff2") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("assets/2f7335119075b2079f1d8825.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("assets/8c2def024c1bf31aacf3624a.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("assets/3c09135e88bbfcd848e99be1.woff2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("assets/447c49583b1b735cc6f56615.woff2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("assets/e507c109c31789b33994646b.woff2") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("assets/dbf64d973b3987844df30992.woff2") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("assets/2f7335119075b2079f1d8825.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("assets/8c2def024c1bf31aacf3624a.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("assets/3c09135e88bbfcd848e99be1.woff2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("assets/447c49583b1b735cc6f56615.woff2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("assets/e507c109c31789b33994646b.woff2") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("assets/dbf64d973b3987844df30992.woff2") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("assets/2f7335119075b2079f1d8825.woff2") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("assets/8c2def024c1bf31aacf3624a.woff2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+body{margin:0}button{font:inherit;cursor:pointer}.ph{width:270px;height:560px;background:#0C0D0F;border:1px solid #2B2C30;border-radius:28px;padding:16px;box-sizing:border-box;display:flex;flex-direction:column;gap:9px;font-size:12px;position:relative;overflow:hidden}.card{background:#16171A;border:1px solid #2B2C30;border-radius:14px;padding:10px;box-sizing:border-box}.btn{background:#C9A24B;color:#16171A;border-radius:12px;padding:12px;text-align:center;font-weight:700;font-size:13px;border:0}.amb{background:#E6C46F;color:#F4EFE6}.chip{border:1px solid #2B2C30;background:#16171A;color:#F4EFE6;border-radius:99px;padding:6px 10px;font-size:11px;white-space:nowrap}.on{background:#F4EFE6;color:#16171A;border-color:#F4EFE6}.add{width:30px;height:30px;border-radius:50%;background:#C9A24B;color:#16171A;border:0;font-size:18px}.lbl{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#A9A397;font-weight:700}.mut{color:#A9A397;font-size:10px}.row{display:flex;gap:8px;align-items:center}.root{font-family:"Manrope",sans-serif;color:#F4EFE6;background:#16171A;box-sizing:border-box}h2{font-family:"Cormorant Garamond",serif;font-weight:600;letter-spacing:.01em;font-size:32px!important}.root{background:#0C0D0F!important}.ph{box-shadow:0 30px 60px rgba(0,0,0,.55),inset 0 0 0 1px #3A3328}.card{box-shadow:inset 0 1px 0 rgba(230,196,111,.14)}.btn{letter-spacing:.08em;text-transform:uppercase;font-size:11px}.amb{color:#0C0D0F!important}.lbl{color:#C9A24B;letter-spacing:.16em}.ser{font-family:"Cormorant Garamond",serif;font-weight:600}
+body{margin:0;background:#0c0d0f}helmet,x-dc{display:contents}</style></head><body><aside style="padding:12px 20px;background:#16171a;color:#f4efe6;font:14px/1.5 sans-serif;border-bottom:1px solid #c9a24b">Sample data / Data ya mfano — Static design preview. Controls are inactive; no live orders or payments.</aside><div inert aria-label="Sample data — static design reference"><div class="root" style="width:1440px;height:1000px;display:flex"><div style="width:230px;background:#111214;border-right:1px solid #2B2C30;padding:24px 16px;box-sizing:border-box"><div class="ser" style="font-size:26px;margin:0 0 22px 8px">Cloud-Menu</div><div style="padding:10px 12px;border-radius:10px;background:#1E1A10;color:#E6C46F;font-weight:700">Dashboard</div><div style="padding:10px 12px;border-radius:10px;color:#A9A397">Live floor</div><div style="padding:10px 12px;border-radius:10px;color:#A9A397">Website &amp; templates</div><div style="padding:10px 12px;border-radius:10px;color:#A9A397">Menu</div><div style="padding:10px 12px;border-radius:10px;color:#A9A397">Tables &amp; QR</div><div style="padding:10px 12px;border-radius:10px;color:#A9A397">Payments &amp; payouts</div><div style="padding:10px 12px;border-radius:10px;color:#A9A397">Staff</div><div style="padding:10px 12px;border-radius:10px;color:#A9A397">Reports</div><div style="padding:10px 12px;border-radius:10px;color:#A9A397">Offers &amp; reviews</div></div>
+<div style="flex:1;padding:28px 32px;box-sizing:border-box"><div class="row" style="margin-bottom:18px"><div style="flex:1"><div class="lbl">Masaki Lounge · Saturday</div><h2 style="margin:4px 0 0">Good evening, Salma</h2></div><span class="chip">Sample data</span><button class="chip on">Today</button><button class="chip">7 days</button><button class="chip">30 days</button><span class="chip" style="background:#14301F;color:#7FDDB0;border-color:#14301F">Live</span></div>
+<div class="row" style="gap:14px;margin-bottom:14px"><div class="card" style="flex:1"><div class="lbl">Revenue today</div><div class="ser" style="font-size:34px;margin:6px 0 2px">TZS 4.82M</div><div style="font-size:11px;color:#4FBF8A;font-weight:700">▲ 12.4% vs last Saturday</div></div><div class="card" style="flex:1"><div class="lbl">Orders</div><div class="ser" style="font-size:34px;margin:6px 0 2px">186</div><div style="font-size:11px;color:#4FBF8A;font-weight:700">▲ 8.1%</div></div><div class="card" style="flex:1"><div class="lbl">Average bill</div><div class="ser" style="font-size:34px;margin:6px 0 2px">TZS 38,200</div><div style="font-size:11px;color:#4FBF8A;font-weight:700">▲ 3.6%</div></div><div class="card" style="flex:1"><div class="lbl">Table turnover</div><div class="ser" style="font-size:34px;margin:6px 0 2px">52 min</div><div style="font-size:11px;color:#4FBF8A;font-weight:700">▼ 9 min faster</div></div><div class="card" style="flex:1"><div class="lbl">Payment success</div><div class="ser" style="font-size:34px;margin:6px 0 2px">94.6%</div><div style="font-size:11px;color:#E5675F;font-weight:700">▼ 1.2 pts</div></div><div class="card" style="flex:1"><div class="lbl">Waiter response</div><div class="ser" style="font-size:34px;margin:6px 0 2px">1m 12s</div><div style="font-size:11px;color:#4FBF8A;font-weight:700">▼ 18 s faster</div></div></div>
+<div class="row" style="gap:14px;margin-bottom:14px;align-items:stretch"><div class="card" style="flex:2"><div class="row"><b style="flex:1;font-size:15px">Revenue, hour by hour</b><span class="mut">— today &nbsp; - - last week</span></div>
+<svg sc-camel-view-box="0 0 700 210" width="100%" height="210" role="img" aria-label="Revenue today versus last week"><path d="M0,170 C70,160 110,140 180,125 S290,70 360,80 S480,40 560,50 S650,25 700,15 L700,210 L0,210Z" fill="#C9A24B" opacity=".10"></path><path d="M0,170 C70,160 110,140 180,125 S290,70 360,80 S480,40 560,50 S650,25 700,15" fill="none" stroke="#E6C46F" stroke-width="3"></path><path d="M0,180 C80,170 130,160 200,145 S300,100 370,105 S490,70 570,80 S650,60 700,50" fill="none" stroke="#A9A397" stroke-width="2" stroke-dasharray="6 6"></path></svg></div>
+<div class="card" style="flex:1"><b style="font-size:15px">Payment mix</b><div class="row" style="margin-top:8px"><svg sc-camel-view-box="0 0 140 140" width="130" height="130" role="img" aria-label="Payment methods share"><circle cx="70" cy="70" r="48" fill="none" stroke="#4FBF8A" stroke-width="16" stroke-dasharray="138.7 301.6" stroke-dashoffset="0" transform="rotate(-90 70 70)"></circle><circle cx="70" cy="70" r="48" fill="none" stroke="#C9A24B" stroke-width="16" stroke-dasharray="72.4 301.6" stroke-dashoffset="-138.7" transform="rotate(-90 70 70)"></circle><circle cx="70" cy="70" r="48" fill="none" stroke="#E5675F" stroke-width="16" stroke-dasharray="54.3 301.6" stroke-dashoffset="-211.1" transform="rotate(-90 70 70)"></circle><circle cx="70" cy="70" r="48" fill="none" stroke="#6FA8FF" stroke-width="16" stroke-dasharray="36.2 301.6" stroke-dashoffset="-265.4" transform="rotate(-90 70 70)"></circle></svg><div style="flex:1"><div class="row" style="margin-bottom:6px"><span style="width:10px;height:10px;border-radius:3px;background:#4FBF8A"></span><span style="flex:1">M-Pesa</span><b>46%</b></div><div class="row" style="margin-bottom:6px"><span style="width:10px;height:10px;border-radius:3px;background:#C9A24B"></span><span style="flex:1">Visa / Mastercard</span><b>24%</b></div><div class="row" style="margin-bottom:6px"><span style="width:10px;height:10px;border-radius:3px;background:#E5675F"></span><span style="flex:1">Airtel Money</span><b>18%</b></div><div class="row" style="margin-bottom:6px"><span style="width:10px;height:10px;border-radius:3px;background:#6FA8FF"></span><span style="flex:1">Tigo Pesa</span><b>12%</b></div></div></div></div></div>
+<div class="row" style="gap:14px;align-items:stretch"><div class="card" style="flex:1.4"><b style="font-size:15px">Orders per hour · peak 11pm–1am</b><div class="row" style="align-items:flex-end;gap:6px;margin-top:10px;height:150px"><div style="flex:1;text-align:center"><div style="height:14px;background:#5A4A25;border-radius:4px 4px 0 0;margin-top:105px"></div><div class="mut" style="margin-top:4px">5p</div></div><div style="flex:1;text-align:center"><div style="height:21px;background:#5A4A25;border-radius:4px 4px 0 0;margin-top:98px"></div><div class="mut" style="margin-top:4px">6p</div></div><div style="flex:1;text-align:center"><div style="height:31px;background:#5A4A25;border-radius:4px 4px 0 0;margin-top:88px"></div><div class="mut" style="margin-top:4px">7p</div></div><div style="flex:1;text-align:center"><div style="height:45px;background:#5A4A25;border-radius:4px 4px 0 0;margin-top:74px"></div><div class="mut" style="margin-top:4px">8p</div></div><div style="flex:1;text-align:center"><div style="height:62px;background:#C9A24B;border-radius:4px 4px 0 0;margin-top:57px"></div><div class="mut" style="margin-top:4px">9p</div></div><div style="flex:1;text-align:center"><div style="height:84px;background:#C9A24B;border-radius:4px 4px 0 0;margin-top:36px"></div><div class="mut" style="margin-top:4px">10p</div></div><div style="flex:1;text-align:center"><div style="height:110px;background:#E6C46F;border-radius:4px 4px 0 0;margin-top:9px"></div><div class="mut" style="margin-top:4px">11p</div></div><div style="flex:1;text-align:center"><div style="height:120px;background:#E6C46F;border-radius:4px 4px 0 0;margin-top:0px"></div><div class="mut" style="margin-top:4px">12a</div></div><div style="flex:1;text-align:center"><div style="height:100px;background:#C9A24B;border-radius:4px 4px 0 0;margin-top:19px"></div><div class="mut" style="margin-top:4px">1a</div></div><div style="flex:1;text-align:center"><div style="height:72px;background:#C9A24B;border-radius:4px 4px 0 0;margin-top:48px"></div><div class="mut" style="margin-top:4px">2a</div></div><div style="flex:1;text-align:center"><div style="height:43px;background:#5A4A25;border-radius:4px 4px 0 0;margin-top:76px"></div><div class="mut" style="margin-top:4px">3a</div></div><div style="flex:1;text-align:center"><div style="height:24px;background:#5A4A25;border-radius:4px 4px 0 0;margin-top:96px"></div><div class="mut" style="margin-top:4px">4a</div></div></div></div>
+<div class="card" style="flex:1"><b style="font-size:15px;display:block;margin-bottom:10px">Top sellers</b><div style="margin-bottom:10px"><div class="row"><span style="flex:1">Grilled Tilapia</span><b>412</b></div><div style="height:6px;background:#2B2C30;border-radius:3px;margin-top:4px"><div style="width:92%;height:6px;background:#C9A24B;border-radius:3px"></div></div></div><div style="margin-bottom:10px"><div class="row"><span style="flex:1">Vodka Lime</span><b>366</b></div><div style="height:6px;background:#2B2C30;border-radius:3px;margin-top:4px"><div style="width:84%;height:6px;background:#C9A24B;border-radius:3px"></div></div></div><div style="margin-bottom:10px"><div class="row"><span style="flex:1">Chicken Skewers</span><b>274</b></div><div style="height:6px;background:#2B2C30;border-radius:3px;margin-top:4px"><div style="width:63%;height:6px;background:#C9A24B;border-radius:3px"></div></div></div><div style="margin-bottom:10px"><div class="row"><span style="flex:1">Pilsner Lager</span><b>241</b></div><div style="height:6px;background:#2B2C30;border-radius:3px;margin-top:4px"><div style="width:55%;height:6px;background:#C9A24B;border-radius:3px"></div></div></div><div style="margin-bottom:10px"><div class="row"><span style="flex:1">Chips Mayai</span><b>166</b></div><div style="height:6px;background:#2B2C30;border-radius:3px;margin-top:4px"><div style="width:38%;height:6px;background:#C9A24B;border-radius:3px"></div></div></div></div>
+<div class="card" style="flex:1"><b style="font-size:15px">Live floor</b><div class="row" style="flex-wrap:wrap;gap:6px;margin:10px 0"><div style="width:58px;height:50px;border-radius:10px;background:#2B2C30;color:#F4EFE6;display:grid;place-items:center;font-weight:800">T1</div><div style="width:58px;height:50px;border-radius:10px;background:#C9A24B;color:#0C0D0F;display:grid;place-items:center;font-weight:800">T2</div><div style="width:58px;height:50px;border-radius:10px;background:#C9A24B;color:#0C0D0F;display:grid;place-items:center;font-weight:800">T3</div><div style="width:58px;height:50px;border-radius:10px;background:#4FBF8A;color:#0C0D0F;display:grid;place-items:center;font-weight:800">T4</div><div style="width:58px;height:50px;border-radius:10px;background:#C9A24B;color:#0C0D0F;display:grid;place-items:center;font-weight:800">T5</div><div style="width:58px;height:50px;border-radius:10px;background:#2B2C30;color:#F4EFE6;display:grid;place-items:center;font-weight:800">T6</div><div style="width:58px;height:50px;border-radius:10px;background:#E5675F;color:#0C0D0F;display:grid;place-items:center;font-weight:800">T7</div><div style="width:58px;height:50px;border-radius:10px;background:#C9A24B;color:#0C0D0F;display:grid;place-items:center;font-weight:800">T8</div><div style="width:58px;height:50px;border-radius:10px;background:#4FBF8A;color:#0C0D0F;display:grid;place-items:center;font-weight:800">T9</div><div style="width:58px;height:50px;border-radius:10px;background:#2B2C30;color:#F4EFE6;display:grid;place-items:center;font-weight:800">T10</div><div style="width:58px;height:50px;border-radius:10px;background:#C9A24B;color:#0C0D0F;display:grid;place-items:center;font-weight:800">T11</div><div style="width:58px;height:50px;border-radius:10px;background:#C9A24B;color:#0C0D0F;display:grid;place-items:center;font-weight:800">T12</div></div><div class="mut">Gold seated · Emerald paying · Ruby waiter call · Dark free</div></div></div>
+<div class="card row" style="margin-top:14px;gap:16px"><div class="lbl">Insights</div><div style="flex:1">Peak sits 11pm–1am: add one bartender on Fridays and Saturdays. Airtel Money payouts await verification: 2 steps left.</div><button class="btn" style="width:170px">Export report</button></div></div></div>
+</div></body></html>

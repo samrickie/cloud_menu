@@ -1,0 +1,3 @@
+import {it,expect,vi} from 'vitest';
+import {ApiClient} from '../packages/shared/src/api-client.ts';
+it('API client preserves an order idempotency key and never automatically retries a failed write',async()=>{const fetcher=vi.fn().mockResolvedValue(new Response(JSON.stringify({status:429,code:'RATE_LIMITED'}),{status:429}));const client=new ApiClient(()=> 'test-session-token','',fetcher);await expect(client.request('/v1/sessions/test/orders',{method:'POST',body:{items:[]},idempotencyKey:'test-key'})).rejects.toThrow('RATE_LIMITED');expect(fetcher).toHaveBeenCalledTimes(1);expect(fetcher.mock.calls[0][1].headers['Idempotency-Key']).toBe('test-key');});

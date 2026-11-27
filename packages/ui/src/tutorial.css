@@ -1,0 +1,7 @@
+
+dialog.cm-tour[open]{position:fixed;inset:0;margin:0;width:100vw;height:100dvh;max-width:none;max-height:none;padding:0;border:0;background:transparent;color:var(--cm-text);overflow:hidden}
+dialog.cm-tour::backdrop{background:transparent}
+.cm-tour::before{content:'';position:absolute;inset:0;background:#08090bcc;backdrop-filter:blur(4px);clip-path:var(--tour-hole)}
+.cm-tour-card{position:absolute;inset:auto 12px max(12px,env(safe-area-inset-bottom));margin:auto;max-width:28rem;padding:16px;border:1px solid var(--cm-primary);border-radius:14px;background:var(--cm-surface);box-shadow:var(--cm-shadow)}
+.cm-tour[data-side=top] .cm-tour-card{top:max(12px,env(safe-area-inset-top));bottom:auto}
+.cm-tour-card p{margin:8px 0 16px}.cm-tour-card button+button{margin-inline-start:8px}

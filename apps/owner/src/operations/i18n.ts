@@ -1,0 +1,29 @@
+export type Locale='en'|'sw';
+
+const sw:Record<string,string>={
+ 'Photo uploads are busy. Try again shortly.':'Upakiaji wa picha una shughuli nyingi. Jaribu tena hivi karibuni.','Keep current photo':'Baki na picha iliyopo','Continue without photo':'Endelea bila picha',
+
+ 'Advanced menu tools':'Zana za juu za menyu','Available for sale':'Inapatikana kuuzwa','Modifier groups':'Makundi ya chaguo','Hide item':'Ficha bidhaa',
+
+ 'Count replaces the total; Receive adds units; Waste subtracts units.':'Hesabu halisi hubadilisha jumla; Pokea huongeza; Upotevu hupunguza.',
+
+ 'Working…':'Inafanyika…','Workspace':'Sehemu ya kazi','Tables & QR':'Meza na QR','A session expired. Sign in again.':'Kipindi kimeisha. Ingia tena.','Check venue, staff identifier and PIN. Try again later if locked.':'Kagua ukumbi, kitambulisho na PIN. Jaribu baadaye ikiwa akaunti imefungwa.',
+
+ 'Dashboard':'Dashibodi','Venue dashboard':'Dashibodi ya ukumbi','Inventory':'Hisa','Team':'Timu','Menu':'Menyu','Orders':'Maagizo','Sign out':'Toka','Sign in':'Ingia','Welcome back':'Karibu tena','Venue code':'Msimbo wa ukumbi','Staff identifier':'Kitambulisho cha mfanyakazi','PIN':'PIN','Languages':'Lugha',
+
+ 'Today':'Leo','Last 7 days':'Siku 7 zilizopita','Last 30 days':'Siku 30 zilizopita','Refresh dashboard':'Sasisha dashibodi','Export CSV':'Pakua CSV','Collected revenue':'Mapato yaliyopokelewa','Ordered sales':'Thamani ya maagizo','Orders placed':'Maagizo yaliyowekwa','Average bill':'Wastani wa bili','Table turnover':'Matumizi ya meza','Payment success rate':'Kiwango cha malipo yaliyofaulu','Waiter response':'Muda wa kuitikia mhudumu','seconds':'sekunde','No previous data':'Hakuna data ya kulinganisha','vs previous period':'ikilinganishwa na kipindi kilichopita','No data':'Hakuna data','Updated':'Imesasishwa','Data is cached for up to 45 seconds.':'Data huhifadhiwa kwa hadi sekunde 45.','Dar es Salaam time (EAT)':'Saa za Dar es Salaam (EAT)',
+
+ 'Revenue by hour':'Mapato kwa saa','Current period':'Kipindi hiki','Same hours last week':'Saa hizo wiki iliyopita','Previous period':'Kipindi kilichopita','Orders by hour':'Maagizo kwa saa','Payment mix':'Mgawanyo wa malipo','No successful payments in this period.':'Hakuna malipo yaliyofaulu katika kipindi hiki.','Top sellers':'Vitu vinavyouzwa zaidi','Item':'Bidhaa','Quantity':'Idadi','Sales':'Mauzo','No orders in this period.':'Hakuna maagizo katika kipindi hiki.','Live floor':'Hali ya meza','Free':'Wazi','Seated':'Ina wageni','Paying':'Inalipwa','Waiter call':'Ombi la mhudumu','No tables yet.':'Hakuna meza bado.','Insights':'Maarifa','Low-stock items':'Bidhaa zenye hisa chache','Peak hour':'Saa yenye maagizo mengi','Review staffing during your busiest hour.':'Kagua idadi ya wahudumu katika saa yenye shughuli nyingi.','Collected revenue includes successful payments only. Unpaid orders appear in ordered sales.':'Mapato yanajumuisha malipo yaliyofaulu pekee. Maagizo yasiyolipwa yanaonyeshwa katika thamani ya maagizo.','Chart data':'Data ya grafu','Hour':'Saa','Could not load data. Please try again.':'Imeshindikana kupakia data. Tafadhali jaribu tena.',
+
+ 'Sellable units, not recipe ingredients.':'Hisa hizi ni za bidhaa zinazouzwa, si viungo vya mapishi.','Tracked stock decreases once when an order is placed.':'Hisa zinazofuatiliwa hupungua mara moja agizo linapowekwa.','Search inventory':'Tafuta hisa','Refresh inventory':'Sasisha hisa','Untracked':'Haifuatiliwi','In stock':'Ipo','Low stock':'Hisa chache','Sold out':'Imeisha','Manage stock':'Dhibiti hisa','Track stock':'Fuatilia hisa','Stock action':'Hatua ya hisa','Count':'Hesabu halisi','Receive':'Pokea','Waste':'Upotevu','Units':'Vipimo','Low-stock threshold':'Kiwango cha hisa chache','Reason':'Sababu','Save stock':'Hifadhi hisa','Close':'Funga','Current units':'Hisa za sasa','Stock changed. Reopen the item and review the latest count.':'Hisa zimebadilika. Fungua bidhaa tena ukague hesabu ya sasa.','Not enough stock remains.':'Hisa zilizobaki hazitoshi.','Stock saved':'Hisa zimehifadhiwa','Kitchen':'Jikoni','Bar':'Baa','Manager':'Meneja','Owner':'Mmiliki','Waiter':'Mhudumu',
+
+ 'Create staff account':'Fungua akaunti ya mfanyakazi','Full name':'Jina kamili','Role':'Wadhifa','Staff PIN':'PIN ya mfanyakazi','Use 6–12 digits. Share the identifier and PIN privately.':'Tumia tarakimu 6–12. Shiriki kitambulisho na PIN kwa faragha.','Create staff':'Ongeza mfanyakazi','Staff accounts':'Akaunti za wafanyakazi','Active':'Inatumika','Disabled':'Imezimwa','Disable':'Zima','Enable':'Washa','Staff created':'Mfanyakazi ameongezwa','Staff sign-in':'Kuingia kwa mfanyakazi','Only owners can create or disable staff accounts.':'Wamiliki pekee wanaweza kuongeza au kuzima akaunti za wafanyakazi.',
+
+ 'Recent orders':'Maagizo ya karibuni','Refresh orders':'Sasisha maagizo','Kitchen note':'Ujumbe wa jikoni','No orders yet.':'Hakuna maagizo bado.','Table':'Meza','Received':'Limepokelewa','Accepted':'Limekubaliwa','Preparing':'Linaandaliwa','Ready':'Tayari','Served':'Limetolewa','Rejected':'Limekataliwa','Cancelled':'Limeghairiwa',
+
+ 'Description · English':'Maelezo · Kiingereza','Description · Swahili':'Maelezo · Kiswahili','Item photo':'Picha ya bidhaa','Choose JPG, PNG or WebP, up to 10 MB.':'Chagua JPG, PNG au WebP, hadi MB 10.','Photo preview':'Onyesho la picha','Uploading photo…':'Picha inapakiwa…','Remove photo':'Ondoa picha','Edit item':'Hariri bidhaa','Save changes':'Hifadhi mabadiliko','Cancel edit':'Ghairi kuhariri','Item saved':'Bidhaa imehifadhiwa','Item added':'Bidhaa imeongezwa','Photo could not be uploaded.':'Picha imeshindwa kupakiwa.','Photo storage limit reached.':'Kikomo cha hifadhi ya picha kimefikiwa.','Manage counts in Inventory after adding the item.':'Dhibiti hesabu katika Hisa baada ya kuongeza bidhaa.'
+
+};
+
+export const opText=(locale:Locale)=>(key:string)=>locale==='sw'?(sw[key]??key):key;
+

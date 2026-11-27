@@ -1,0 +1,4 @@
+import {it,expect} from 'vitest';
+import {billTotals} from '../packages/shared/src/splits.ts';
+it('included tax is disclosed without being added twice; exclusive tax and service use integer half-up rounding',()=>{expect(billTotals(31500,1000,1800,true)).toEqual({subtotal_tzs:31500,service_charge_tzs:3150,tax_tzs:5286,total_tzs:34650});expect(billTotals(10000,1000,1800,false)).toEqual({subtotal_tzs:10000,service_charge_tzs:1000,tax_tzs:1980,total_tzs:12980});expect(billTotals(15,1000,0,true).service_charge_tzs).toBe(2);});
+it('money calculations reject unsafe totals, fractional TZS and invalid basis points',()=>{for(const subtotal of [-1,1.5,NaN,Infinity])expect(()=>billTotals(subtotal,0,0,true)).toThrow();expect(()=>billTotals(1000,10001,0,true)).toThrow();expect(()=>billTotals(Number.MAX_SAFE_INTEGER,10000,10000,false)).toThrow();});
